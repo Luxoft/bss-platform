@@ -1,4 +1,4 @@
-[![License](https://img.shields.io/github/license/bss-platform)](LICENSE)
+[![License](https://img.shields.io/github/license/luxoft/bss-platform)](LICENSE)
 
 # BSS Platform
 
