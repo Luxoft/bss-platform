@@ -7,9 +7,9 @@ This repository offers a wide collection of .NET packages for use in microservic
 ## RabbitMQ
 
 ### Consumer
-To use the RabbitMQ consumer, first install the [NuGet package](https://www.nuget.org/packages/Bss.Platform.RabbitMq.Consumer):
+To use the RabbitMQ consumer, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.RabbitMq.Consumer):
 ```shell
-dotnet add package Bss.Platform.RabbitMq.Consumer
+dotnet add package Luxoft.Bss.Platform.RabbitMq.Consumer
 ```
 In the second step, you need implement interface IRabbitMqMessageProcessor
 ```C#
@@ -22,14 +22,31 @@ public class MessageProcessor : IRabbitMqMessageProcessor
 }
 ```
 
-Finally, register the RabbitMq consumer in DI
+Finally, register the RabbitMQ consumer in DI
 ```C#
 services
     .AddPlatformRabbitMqConsumer<MessageProcessor>(configuration);
 ```
 
 > [!IMPORTANT]
-> If you run more than one consumer, they will consume messages in parallel mode. In order to change it you need
+> If you run more than one consumer, they will consume messages in parallel mode. In order to change it follow the instructions below.
+
+Switch consuming mode in appsettings.json file
+```json
+{
+  "RabbitMQ": {
+    "Consumer": {
+      "Mode": "SingleActiveConsumer"
+    }
+  }
+}
+```
+
+Register the consumer lock service in DI
+```C#
+services
+    .AddRabbitMqSqlServerConsumerLock(configuration.GetConnectionString("ms sql connection string")!);
+```
 
 ## NHibernate
 
