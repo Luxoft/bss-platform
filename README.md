@@ -27,6 +27,7 @@ public class MessageProcessor : IRabbitMqMessageProcessor
 Finally, register the RabbitMQ consumer in DI
 ```C#
 services
+    .AddPlatformRabbitMqClient(configuration)
     .AddPlatformRabbitMqConsumer<MessageProcessor>(configuration);
 ```
 
