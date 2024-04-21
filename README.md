@@ -45,7 +45,7 @@ Switch consuming mode in appsettings.json file
 Register the consumer lock service in DI
 ```C#
 services
-    .AddRabbitMqSqlServerConsumerLock(configuration.GetConnectionString("ms sql connection string")!);
+    .AddPlatformRabbitMqSqlServerConsumerLock(configuration.GetConnectionString("ms sql connection string"));
 ```
 
 ## NHibernate
