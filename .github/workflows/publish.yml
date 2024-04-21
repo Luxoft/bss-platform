@@ -1,0 +1,32 @@
+name: Publish to Nuget
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore packages
+        working-directory: ./src
+        run: dotnet restore
+
+      - name: Build & pack
+        working-directory: ./src
+        run: dotnet pack Bss.Platform.sln --no-restore /p:PackageVersion=${{ github.event.release.tag_name }} /p:InformationalVersion=${{ github.sha }} -c Release -o out
+
+      - name: Publish
+        working-directory: ./src/out
+        run: dotnet nuget push *.nupkg -s https://api.nuget.org/v3/index.json --api-key ${NUGET_TOKEN}
+        env:
+          NUGET_TOKEN: ${{ secrets.NUGET_BSSFRAMEWORK }}
