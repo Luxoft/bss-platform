@@ -1,6 +1,6 @@
 [![License](https://img.shields.io/github/license/luxoft/bss-platform)](LICENSE)
 ![Nuget](https://img.shields.io/nuget/v/Luxoft.Bss.Platform.RabbitMq.Consumer)
-[![Build & Tests](https://github.com/luxoft/bss-platform/actions/workflows/pr.yml/badge.svg)](Build+Unit)
+[![Build & Tests](https://github.com/luxoft/bss-platform/actions/workflows/pr.yml/badge.svg)](https://github.com/Luxoft/bss-platform/actions/workflows/pr.yml)
 
 # BSS Platform
 
