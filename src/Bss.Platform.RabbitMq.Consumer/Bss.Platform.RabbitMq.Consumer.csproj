@@ -1,4 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageId>Luxoft.Bss.Platform.RabbitMq.Consumer</PackageId>
+    </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\Bss.Platform.RabbitMq\Bss.Platform.RabbitMq.csproj"/>
     </ItemGroup>
