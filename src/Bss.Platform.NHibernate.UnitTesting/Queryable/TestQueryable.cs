@@ -3,6 +3,10 @@ using System.Linq.Expressions;
 
 namespace Bss.Platform.NHibernate.UnitTesting.Queryable;
 
+/// <summary>
+///
+/// </summary>
+/// <typeparam name="TDomainObject"></typeparam>
 public class TestQueryable<TDomainObject> : IOrderedQueryable<TDomainObject>
 {
     private readonly IQueryable<TDomainObject> queryable;
