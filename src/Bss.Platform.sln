@@ -4,6 +4,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RabbitMq", "RabbitMq", "{0F
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.RabbitMq", "Bss.Platform.RabbitMq\Bss.Platform.RabbitMq.csproj", "{860BFBD8-26EA-44F9-980E-21B828FC8F72}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.RabbitMq.Consumer", "Bss.Platform.RabbitMq.Consumer\Bss.Platform.RabbitMq.Consumer.csproj", "{EF6932F4-67BD-422D-B2D8-0DA4CE98181A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -11,11 +13,16 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{860BFBD8-26EA-44F9-980E-21B828FC8F72} = {0F54786D-AB46-46AC-88DF-BEB789A62C1F}
+		{EF6932F4-67BD-422D-B2D8-0DA4CE98181A} = {0F54786D-AB46-46AC-88DF-BEB789A62C1F}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{860BFBD8-26EA-44F9-980E-21B828FC8F72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{860BFBD8-26EA-44F9-980E-21B828FC8F72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{860BFBD8-26EA-44F9-980E-21B828FC8F72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{860BFBD8-26EA-44F9-980E-21B828FC8F72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF6932F4-67BD-422D-B2D8-0DA4CE98181A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF6932F4-67BD-422D-B2D8-0DA4CE98181A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF6932F4-67BD-422D-B2D8-0DA4CE98181A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF6932F4-67BD-422D-B2D8-0DA4CE98181A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
