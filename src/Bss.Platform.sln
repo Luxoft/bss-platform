@@ -10,6 +10,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NHibernate", "NHibernate", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.NHibernate.UnitTesting", "Bss.Platform.NHibernate.UnitTesting\Bss.Platform.NHibernate.UnitTesting.csproj", "{5B028860-35C4-43CF-AA63-830A66D83E46}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{C53E37ED-7EFD-4383-9D89-A3CD4B8ED2AB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.Unit", "Tests.Unit\Tests.Unit.csproj", "{16BA5D44-4C8F-4EF6-9633-C4502ED91A22}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +23,7 @@ Global
 		{860BFBD8-26EA-44F9-980E-21B828FC8F72} = {0F54786D-AB46-46AC-88DF-BEB789A62C1F}
 		{EF6932F4-67BD-422D-B2D8-0DA4CE98181A} = {0F54786D-AB46-46AC-88DF-BEB789A62C1F}
 		{5B028860-35C4-43CF-AA63-830A66D83E46} = {1E012CC2-9AD1-491A-9D6B-8E3215347B97}
+		{16BA5D44-4C8F-4EF6-9633-C4502ED91A22} = {C53E37ED-7EFD-4383-9D89-A3CD4B8ED2AB}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{860BFBD8-26EA-44F9-980E-21B828FC8F72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -33,5 +38,9 @@ Global
 		{5B028860-35C4-43CF-AA63-830A66D83E46}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B028860-35C4-43CF-AA63-830A66D83E46}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B028860-35C4-43CF-AA63-830A66D83E46}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16BA5D44-4C8F-4EF6-9633-C4502ED91A22}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16BA5D44-4C8F-4EF6-9633-C4502ED91A22}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16BA5D44-4C8F-4EF6-9633-C4502ED91A22}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16BA5D44-4C8F-4EF6-9633-C4502ED91A22}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
