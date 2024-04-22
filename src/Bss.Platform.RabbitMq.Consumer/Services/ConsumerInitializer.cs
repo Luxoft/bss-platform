@@ -14,6 +14,8 @@ internal record ConsumerInitializer(IOptions<RabbitMqConsumerSettings> Options) 
         var consumerSettings = this.Options.Value;
 
         model.ExchangeDeclare(consumerSettings.Exchange, ExchangeType.Topic, true);
+        model.ExchangeDeclare(consumerSettings.DeadLetterExchange, ExchangeType.Fanout, true);
+
         model.QueueDeclare(consumerSettings.Queue, true, false, false, null);
 
         if (consumerSettings.RoutingKeys.Length == 0)
