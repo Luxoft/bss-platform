@@ -7,11 +7,11 @@ using RabbitMQ.Client;
 
 namespace Bss.Platform.RabbitMq.Consumer.Services;
 
-internal record ConsumerInitializer(IOptions<RabbitMqConsumerSettings> options) : IRabbitMqInitializer
+internal record ConsumerInitializer(IOptions<RabbitMqConsumerSettings> Options) : IRabbitMqInitializer
 {
     public void Initialize(IModel model)
     {
-        var consumerSettings = options.Value;
+        var consumerSettings = this.Options.Value;
 
         model.ExchangeDeclare(consumerSettings.Exchange, ExchangeType.Topic, true);
         model.ExchangeDeclare(consumerSettings.DeadLetterExchange, ExchangeType.Fanout, true);
