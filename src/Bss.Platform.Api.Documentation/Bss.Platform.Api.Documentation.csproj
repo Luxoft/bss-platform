@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageId>Luxoft.Bss.Platform.Api.Documentation</PackageId>
+    </PropertyGroup>
+    <ItemGroup>
+      <PackageReference Include="Swashbuckle.AspNetCore" />
+    </ItemGroup>
+</Project>
