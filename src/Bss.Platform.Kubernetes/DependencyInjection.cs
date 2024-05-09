@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.ApplicationInsights.DependencyCollector;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +13,7 @@ public static class DependencyInjection
     public static IServiceCollection AddPlatformKubernetesInsights(this IServiceCollection services, IConfiguration configuration) =>
         services
             .AddApplicationInsightsTelemetry(configuration)
+            .ConfigureTelemetryModule<DependencyTrackingTelemetryModule>((x, _) => { x.EnableSqlCommandTextInstrumentation = true; })
             .AddApplicationInsightsKubernetesEnricher();
 
     public static IServiceCollection AddPlatformKubernetesHealthChecks(this IServiceCollection services, string connectionString)
