@@ -11,13 +11,13 @@ using RabbitMQ.Client;
 
 namespace Bss.Platform.RabbitMq.Services;
 
-public record RabbitMqClient(IOptions<RabbitMqServerSettings> Options, ILogger<RabbitMqClient> Logger) : IRabbitMqClient
+public class RabbitMqClient(IOptions<RabbitMqServerSettings> options, ILogger<RabbitMqClient> logger) : IRabbitMqClient
 {
     private const int RetryConnectDelay = 5000;
 
     public Task<IConnection?> TryConnectAsync(int? attempts, CancellationToken token = default)
     {
-        var serverSettings = this.Options.Value;
+        var serverSettings = options.Value;
         var factory = new ConnectionFactory
                       {
                           HostName = serverSettings.Host,
@@ -58,5 +58,5 @@ public record RabbitMqClient(IOptions<RabbitMqServerSettings> Options, ILogger<R
                 (ex, _) => this.LogConnectionError(ex));
     }
 
-    private void LogConnectionError(Exception exception) => this.Logger.LogError(exception, "Could not connect to RabbitMQ server");
+    private void LogConnectionError(Exception exception) => logger.LogError(exception, "Could not connect to RabbitMQ server");
 }

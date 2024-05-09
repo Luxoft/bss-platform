@@ -9,12 +9,12 @@ using RabbitMQ.Client;
 
 namespace Bss.Platform.RabbitMq.Consumer.Services;
 
-internal record SynchronizedConsumer(
-    SqlConnectionStringProvider ConnectionStringProvider,
-    IRabbitMqConsumerLockService LockService,
-    ILogger<SynchronizedConsumer> Logger,
-    IRabbitMqMessageReader MessageReader,
-    IOptions<RabbitMqConsumerSettings> ConsumerSettings)
+internal class SynchronizedConsumer(
+    SqlConnectionStringProvider connectionStringProvider,
+    IRabbitMqConsumerLockService lockService,
+    ILogger<SynchronizedConsumer> logger,
+    IRabbitMqMessageReader messageReader,
+    IOptions<RabbitMqConsumerSettings> consumerSettings)
     : IRabbitMqConsumer
 {
     private SqlConnection? connection;
@@ -29,19 +29,19 @@ internal record SynchronizedConsumer(
             {
                 if (await this.GetLock(token))
                 {
-                    await this.MessageReader.ReadAsync(channel, token);
+                    await messageReader.ReadAsync(channel, token);
                 }
                 else
                 {
                     await this.CloseConnectionAsync();
-                    await Delay(this.ConsumerSettings.Value.InactiveConsumerSleepMilliseconds, token);
+                    await Delay(consumerSettings.Value.InactiveConsumerSleepMilliseconds, token);
                 }
             }
             catch (Exception e)
             {
-                this.Logger.LogError(e, "Consuming error");
+                logger.LogError(e, "Consuming error");
                 await this.CloseConnectionAsync();
-                await Delay(this.ConsumerSettings.Value.InactiveConsumerSleepMilliseconds, token);
+                await Delay(consumerSettings.Value.InactiveConsumerSleepMilliseconds, token);
             }
         }
     }
@@ -50,7 +50,7 @@ internal record SynchronizedConsumer(
     {
         if (this.connection is not null)
         {
-            this.LockService.TryReleaseLock(this.connection);
+            lockService.TryReleaseLock(this.connection);
         }
 
         this.connection?.Close();
@@ -59,19 +59,19 @@ internal record SynchronizedConsumer(
 
     private async Task<bool> GetLock(CancellationToken token)
     {
-        if (this.lockObtainedDate?.AddMilliseconds(this.ConsumerSettings.Value.ActiveConsumerRefreshMilliseconds) >= DateTime.Now)
+        if (this.lockObtainedDate?.AddMilliseconds(consumerSettings.Value.ActiveConsumerRefreshMilliseconds) >= DateTime.Now)
         {
             return true;
         }
 
         await this.OpenConnectionAsync(token);
-        if (!this.LockService.TryObtainLock(this.connection!))
+        if (!lockService.TryObtainLock(this.connection!))
         {
             return false;
         }
 
         this.lockObtainedDate = DateTime.Now;
-        this.Logger.LogDebug("Current consumer is active");
+        logger.LogDebug("Current consumer is active");
 
         return true;
     }
@@ -80,7 +80,7 @@ internal record SynchronizedConsumer(
     {
         await this.CloseConnectionAsync();
 
-        this.connection = new SqlConnection(this.ConnectionStringProvider.ConnectionString);
+        this.connection = new SqlConnection(connectionStringProvider.ConnectionString);
         await this.connection.OpenAsync(token);
     }
 
@@ -90,13 +90,13 @@ internal record SynchronizedConsumer(
         {
             if (this.connection is not null)
             {
-                this.LockService.TryReleaseLock(this.connection);
+                lockService.TryReleaseLock(this.connection);
                 await this.connection!.CloseAsync();
             }
         }
         catch (Exception e)
         {
-            this.Logger.LogError(e, "Failed to close connection");
+            logger.LogError(e, "Failed to close connection");
         }
     }
 
