@@ -22,6 +22,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Api", "Api", "{8F22FE4E-8FD
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.Api.Documentation", "Bss.Platform.Api.Documentation\Bss.Platform.Api.Documentation.csproj", "{0005DAE1-3F66-4A98-A11B-DEFDF2BD7EA3}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Kubernetes", "Kubernetes", "{51F57F48-6CDC-43E2-90DA-B73C12EA2185}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.Kubernetes", "Bss.Platform.Kubernetes\Bss.Platform.Kubernetes.csproj", "{1BD00077-8005-42E9-AEFE-62A21E057858}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +38,7 @@ Global
 		{16BA5D44-4C8F-4EF6-9633-C4502ED91A22} = {C53E37ED-7EFD-4383-9D89-A3CD4B8ED2AB}
 		{2417B26C-C12D-4E63-8996-395DD78F81A1} = {D07584C3-F6D5-472C-8515-7D38F4C54F11}
 		{0005DAE1-3F66-4A98-A11B-DEFDF2BD7EA3} = {8F22FE4E-8FD4-4309-8B47-C33AA6E52052}
+		{1BD00077-8005-42E9-AEFE-62A21E057858} = {51F57F48-6CDC-43E2-90DA-B73C12EA2185}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{860BFBD8-26EA-44F9-980E-21B828FC8F72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -60,5 +65,9 @@ Global
 		{0005DAE1-3F66-4A98-A11B-DEFDF2BD7EA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0005DAE1-3F66-4A98-A11B-DEFDF2BD7EA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0005DAE1-3F66-4A98-A11B-DEFDF2BD7EA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1BD00077-8005-42E9-AEFE-62A21E057858}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1BD00077-8005-42E9-AEFE-62A21E057858}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1BD00077-8005-42E9-AEFE-62A21E057858}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1BD00077-8005-42E9-AEFE-62A21E057858}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

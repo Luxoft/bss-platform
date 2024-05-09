@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageId>Luxoft.Bss.Platform.Kubernetes</PackageId>
+    </PropertyGroup>
+    <ItemGroup>
+      <PackageReference Include="AspNetCore.HealthChecks.SqlServer" />
+      <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+      <PackageReference Include="Microsoft.ApplicationInsights.Kubernetes" />
+      <PackageReference Include="Microsoft.AspNetCore.Diagnostics.HealthChecks" />
+    </ItemGroup>
+</Project>
