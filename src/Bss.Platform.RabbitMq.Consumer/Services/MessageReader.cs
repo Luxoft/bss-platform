@@ -13,19 +13,19 @@ using RabbitMQ.Client;
 
 namespace Bss.Platform.RabbitMq.Consumer.Services;
 
-internal record MessageReader(
-    IRabbitMqMessageProcessor MessageProcessor,
-    IDeadLetterProcessor DeadLetterProcessor,
-    ILogger<MessageReader> Logger,
-    IOptions<RabbitMqConsumerSettings> ConsumerSettings)
+internal class MessageReader(
+    IRabbitMqMessageProcessor messageProcessor,
+    IDeadLetterProcessor deadLetterProcessor,
+    ILogger<MessageReader> logger,
+    IOptions<RabbitMqConsumerSettings> consumerSettings)
     : IRabbitMqMessageReader
 {
     public async Task ReadAsync(IModel channel, CancellationToken token)
     {
-        var result = channel.BasicGet(this.ConsumerSettings.Value.Queue, false);
+        var result = channel.BasicGet(consumerSettings.Value.Queue, false);
         if (result is null)
         {
-            await Delay(this.ConsumerSettings.Value.ReceiveMessageDelayMilliseconds, token);
+            await Delay(consumerSettings.Value.ReceiveMessageDelayMilliseconds, token);
             return;
         }
 
@@ -37,10 +37,10 @@ internal record MessageReader(
         var result = await Policy
                            .Handle<Exception>()
                            .WaitAndRetryAsync(
-                               this.ConsumerSettings.Value.FailedMessageRetryCount,
-                               _ => TimeSpan.FromMilliseconds(this.ConsumerSettings.Value.RejectMessageDelayMilliseconds))
+                               consumerSettings.Value.FailedMessageRetryCount,
+                               _ => TimeSpan.FromMilliseconds(consumerSettings.Value.RejectMessageDelayMilliseconds))
                            .ExecuteAndCaptureAsync(
-                               innerToken => this.MessageProcessor.ProcessAsync(
+                               innerToken => messageProcessor.ProcessAsync(
                                    message.BasicProperties,
                                    message.RoutingKey,
                                    GetMessageBody(message),
@@ -62,7 +62,7 @@ internal record MessageReader(
             }
             else
             {
-                var deadLetteringResult = await this.DeadLetterProcessor.ProcessAsync(
+                var deadLetteringResult = await deadLetterProcessor.ProcessAsync(
                                               GetMessageBody(message),
                                               message.RoutingKey,
                                               result.FinalException,
@@ -79,9 +79,9 @@ internal record MessageReader(
         }
         catch (Exception ex)
         {
-            this.Logger.LogError(ex, "Failed to deadLetter message with routing key {RoutingKey}", message.RoutingKey);
+            logger.LogError(ex, "Failed to deadLetter message with routing key {RoutingKey}", message.RoutingKey);
 
-            await Delay(this.ConsumerSettings.Value.ReceiveMessageDelayMilliseconds, token);
+            await Delay(consumerSettings.Value.ReceiveMessageDelayMilliseconds, token);
 
             channel.BasicNack(message.DeliveryTag, false, true);
         }

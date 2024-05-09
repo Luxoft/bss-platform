@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Bss.Platform.RabbitMq.Consumer.Services;
 
-internal record MsSqlLockService(IOptions<RabbitMqConsumerSettings> ConsumerSettings) : IRabbitMqConsumerLockService
+internal class MsSqlLockService(IOptions<RabbitMqConsumerSettings> consumerSettings) : IRabbitMqConsumerLockService
 {
     public bool TryObtainLock(SqlConnection connection)
     {
@@ -51,5 +51,5 @@ internal record MsSqlLockService(IOptions<RabbitMqConsumerSettings> ConsumerSett
         }
     }
 
-    private string GetLockName() => $"{this.ConsumerSettings.Value.Queue}_Consumer_Lock";
+    private string GetLockName() => $"{consumerSettings.Value.Queue}_Consumer_Lock";
 }
