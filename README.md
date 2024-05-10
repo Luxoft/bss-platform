@@ -51,6 +51,85 @@ services
     .AddPlatformRabbitMqSqlServerConsumerLock(configuration.GetConnectionString("ms sql connection string"));
 ```
 
+## Logging
+To use platform logger, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Logging):
+```shell
+dotnet add package Luxoft.Bss.Platform.Logging
+```
+
+In the second step, you need register the logger in DI
+```C#
+builder.Host.AddPlatformLogging();
+```
+
+Finally, register sinks in appsettings.json file
+```json
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "System": "Error",
+        "Microsoft": "Error",
+        "Microsoft.Hosting.Lifetime": "Information"
+      }
+    },
+    "WriteTo": [
+      {
+        "Name": "Console",
+        "Args": {
+          "formatter": "Serilog.Formatting.Compact.RenderedCompactJsonFormatter, Serilog.Formatting.Compact"
+        }
+      }
+    ]
+  }
+}
+```
+## API Documentation
+To use platform API documentation, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Api.Documentation):
+```shell
+dotnet add package Luxoft.Bss.Platform.Api.Documentation
+```
+
+Finally, you need register it in DI
+```C#
+services
+  .AddPlatformApiDocumentation(builder.Environment);
+
+app
+  .UsePlatformApiDocumentation(builder.Environment);
+```
+
+## Kubernetes
+
+To use kubernetes utils, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Kubernetes):
+```shell
+dotnet add package Luxoft.Bss.Platform.Kubernetes
+```
+
+### Insights
+
+To enable application insights, just register it in DI
+```C#
+services
+  .AddPlatformKubernetesInsights(builder.Configuration);
+```
+
+### Health Checks
+
+To add health checks for your service, you need register it in DI
+```C#
+services
+  .AddPlatformKubernetesHealthChecks("your db connection string");
+
+app
+  .UsePlatformKubernetesHealthChecks();
+```
+
+After that, health checks will be available by URLs
+- /health/live
+- /health/ready
+
 ## NHibernate
 
 ### Unit Testing
