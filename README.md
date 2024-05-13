@@ -6,6 +6,16 @@
 
 This repository offers a wide collection of .NET packages for use in microservices architecture.
 
+# Sections
+
+- [RabbitMQ Consumer](#Consumer)
+- [Logging](#Logging)
+- [API Middlewares](#Middlewares)
+- [API Documentation](#Documentation)
+- [Kubernetes Insights](#Insights)
+- [Kubernetes Health Checks](#Health-Checks)
+- [NHibernate](#NHibernate)
+
 ## RabbitMQ
 
 ### Consumer
@@ -85,7 +95,26 @@ Finally, register sinks in appsettings.json file
   }
 }
 ```
-## API Documentation
+## API
+
+### Middlewares
+To use platform API middlewares, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Api.Middlewares):
+```shell
+dotnet add package Luxoft.Bss.Platform.Api.Middlewares
+```
+
+#### Errors
+To log exceptions you need to use errors middleware.
+```C#
+app.UsePlatformErrorsMiddleware(); // This middleware should be the first
+```
+> [!IMPORTANT]
+> If you need to change response status code, then you should register status code resolver.
+```C#
+services.AddSingleton<IStatusCodeResolver, YourStatusCodeResolver>();
+```
+
+### Documentation
 To use platform API documentation, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Api.Documentation):
 ```shell
 dotnet add package Luxoft.Bss.Platform.Api.Documentation
