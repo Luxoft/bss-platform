@@ -8,7 +8,7 @@ This repository offers a wide collection of .NET packages for use in microservic
 
 # Sections
 
-- [RabbitMQ](#Consumer)
+- [RabbitMQ Consumer](#Consumer)
 - [Logging](#Logging)
 - [API Middlewares](#Middlewares)
 - [API Documentation](#Documentation)
