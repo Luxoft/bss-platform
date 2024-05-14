@@ -5,11 +5,12 @@ using System.Text.Json;
 using Bss.Platform.Api.Middlewares.Interfaces;
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Bss.Platform.Api.Middlewares;
 
-public class ErrorsMiddleware(RequestDelegate next, ILogger<ErrorsMiddleware> logger, IStatusCodeResolver? statusCodeResolver)
+public class ErrorsMiddleware(RequestDelegate next, ILogger<ErrorsMiddleware> logger, IServiceProvider serviceProvider)
 {
     public async Task Invoke(HttpContext context)
     {
@@ -28,7 +29,8 @@ public class ErrorsMiddleware(RequestDelegate next, ILogger<ErrorsMiddleware> lo
     private Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = MediaTypeNames.Application.Json;
-        context.Response.StatusCode = (int)(statusCodeResolver?.Resolve(exception) ?? HttpStatusCode.InternalServerError);
+        context.Response.StatusCode =
+            (int)(serviceProvider.GetService<IStatusCodeResolver>()?.Resolve(exception) ?? HttpStatusCode.InternalServerError);
 
         return context.Response.WriteAsync(JsonSerializer.Serialize(exception.GetBaseException().Message));
     }
