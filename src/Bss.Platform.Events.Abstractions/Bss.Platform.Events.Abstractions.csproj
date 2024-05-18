@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageId>Luxoft.Bss.Platform.Events.Abstractions</PackageId>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="MediatR"/>
+    </ItemGroup>
+</Project>
