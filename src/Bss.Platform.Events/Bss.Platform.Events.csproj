@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageId>Luxoft.Bss.Platform.Events</PackageId>
+    </PropertyGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Bss.Platform.Events.Abstractions\Bss.Platform.Events.Abstractions.csproj" />
+    </ItemGroup>
+</Project>
