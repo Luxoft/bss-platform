@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageId>Luxoft.Bss.Platform.Events</PackageId>
+    </PropertyGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Bss.Platform.Events.Abstractions\Bss.Platform.Events.Abstractions.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="DotNetCore.CAP.Dashboard" />
+      <PackageReference Include="DotNetCore.CAP.RabbitMQ" />
+      <PackageReference Include="DotNetCore.CAP.SqlServer" />
+      <PackageReference Include="Savorboard.CAP.InMemoryMessageQueue" />
+    </ItemGroup>
+</Project>
