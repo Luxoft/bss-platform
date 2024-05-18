@@ -5,4 +5,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Bss.Platform.Events.Abstractions\Bss.Platform.Events.Abstractions.csproj" />
     </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="DotNetCore.CAP.Dashboard" />
+    </ItemGroup>
 </Project>
