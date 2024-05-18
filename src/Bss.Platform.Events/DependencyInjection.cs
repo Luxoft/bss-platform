@@ -1,10 +1,13 @@
 using System.Data;
+using System.Reflection;
 
 using Bss.Platform.Events.Abstractions;
+using Bss.Platform.Events.Interfaces;
 using Bss.Platform.Events.Models;
 using Bss.Platform.Events.Publishers;
 
 using DotNetCore.CAP;
+using DotNetCore.CAP.Internal;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,11 +20,15 @@ public static class DependencyInjection
     public static IServiceCollection AddPlatformDomainEvents(this IServiceCollection services) =>
         services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
 
-    public static IServiceCollection AddPlatformIntegrationEvents(
+    public static IServiceCollection AddPlatformIntegrationEvents<TEventProcessor>(
         this IServiceCollection services,
+        Assembly eventsAssembly,
         Action<IntegrationEventsOptions>? setup = null)
+        where TEventProcessor : class, IIntegrationEventProcessor
     {
         services
+            .AddSingleton<IIntegrationEventProcessor, TEventProcessor>()
+            .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelector>(x => new CapConsumerServiceSelector(x, eventsAssembly))
             .AddScoped<IIntegrationEventPublisher, IntegrationEventPublisher>()
             .AddScoped<ICapTransaction>(
                 serviceProvider =>
