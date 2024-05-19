@@ -167,11 +167,11 @@ public class IntegrationEventProcessor : IIntegrationEventProcessor
 }
 ```
 
-Finally, register integration events in DI
+Then, register integration events in DI
 ```C#
 services
   .AddPlatformIntegrationEvents<IntegrationEventProcessor>(
-      typeof(Event).Assembly,
+      typeof(IntegrationEvents).Assembly,
       x =>
       {
           x.SqlServer.ConnectionString = "ms sql connection string";
@@ -183,6 +183,17 @@ services
           x.MessageQueue.UserName = "RabbitMQ username";
           x.MessageQueue.Secret = "RabbitMQ secret";
       });
+```
+
+Now, you can use it in this way
+```C#
+public class CommandHandler(IIntegrationEventPublisher eventPublisher) : IRequestHandler<Command>
+{
+    public async Task Handle(Command request, CancellationToken cancellationToken)
+    {
+        await eventPublisher.PublishAsync(new IntegrationEvent(), cancellationToken);
+    }
+}
 ```
 
 Additional options
