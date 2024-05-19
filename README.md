@@ -12,6 +12,8 @@ This repository offers a wide collection of .NET packages for use in microservic
 - [Logging](#Logging)
 - [API Middlewares](#Middlewares)
 - [API Documentation](#Documentation)
+- [Domain Events](#Domain-Events)
+- [Integration Events](#Integration-Events)
 - [Kubernetes Insights](#Insights)
 - [Kubernetes Health Checks](#Health-Checks)
 - [NHibernate](#NHibernate)
@@ -128,6 +130,71 @@ services
 app
   .UsePlatformApiDocumentation(builder.Environment);
 ```
+
+## Events
+To use events, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Events):
+```shell
+dotnet add package Luxoft.Bss.Platform.Events
+```
+
+### Domain Events
+
+To use domain events, you need register it in DI
+```C#
+services
+  .AddPlatformDomainEvents();
+```
+Now, you can use it in this way
+```C#
+public class CommandHandler(IDomainEventPublisher eventPublisher) : IRequestHandler<Command>
+{
+    public async Task Handle(Command request, CancellationToken cancellationToken)
+    {
+        await eventPublisher.PublishAsync(new DomainEvent(), cancellationToken);
+    }
+}
+```
+
+### Integration Events
+In the first step, you need implement interface IIntegrationEventProcessor
+```C#
+public class IntegrationEventProcessor : IIntegrationEventProcessor
+{
+    public Task ProcessAsync(IIntegrationEvent @event, CancellationToken cancellationToken)
+    {
+        // write your consuming logic here
+    }
+}
+```
+
+Finally, register integration events in DI
+```C#
+services
+  .AddPlatformIntegrationEvents<IntegrationEventProcessor>(
+      typeof(Event).Assembly,
+      x =>
+      {
+          x.SqlServer.ConnectionString = "ms sql connection string";
+
+          x.MessageQueue.ExchangeName = "integration.events";
+          x.MessageQueue.Host = "RabbitMQ host";
+          x.MessageQueue.Port = "RabbitMQ port";
+          x.MessageQueue.VirtualHost = "RabbitMQ virtual host";
+          x.MessageQueue.UserName = "RabbitMQ username";
+          x.MessageQueue.Secret = "RabbitMQ secret";
+      });
+```
+
+Additional options
+
+| Option                  | Description                                                                           | Type   | Default value |
+| ----------------------- | ------------------------------------------------------------------------------------- | ------ | --------------|
+| **DashboardPath**       | Dashboard relative path                                                               | string | /admin/events |
+| **FailedRetryCount**    | The number of message retries                                                         | int    | 5             |
+| **RetentionDays**       | Success message live period                                                           | int    | 15            |
+| **SqlServer.Schema**    | Shema name for event tables                                                           | string | events        |
+| **MessageQueue.Enable** | For developer purpose only. If false, then switches RabbitMQ queue to queue in memory | string | true          |
+|                         |
 
 ## Kubernetes
 
