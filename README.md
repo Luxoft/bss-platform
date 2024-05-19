@@ -144,13 +144,24 @@ To use domain events, you need register it in DI
 services
   .AddPlatformDomainEvents();
 ```
-Now, you can use it in this way
+Now, you can publish it in this way
 ```C#
 public class CommandHandler(IDomainEventPublisher eventPublisher) : IRequestHandler<Command>
 {
     public async Task Handle(Command request, CancellationToken cancellationToken)
     {
         await eventPublisher.PublishAsync(new DomainEvent(), cancellationToken);
+    }
+}
+```
+
+And process it in this way
+```C#
+public class EventHandler : INotificationHandler<DomainEvent>
+{
+    public async Task Handle(DomainEvent notification, CancellationToken cancellationToken)
+    {
+        // your logic
     }
 }
 ```
@@ -185,13 +196,24 @@ services
       });
 ```
 
-Now, you can use it in this way
+Now, you can publish it in this way
 ```C#
 public class CommandHandler(IIntegrationEventPublisher eventPublisher) : IRequestHandler<Command>
 {
     public async Task Handle(Command request, CancellationToken cancellationToken)
     {
         await eventPublisher.PublishAsync(new IntegrationEvent(), cancellationToken);
+    }
+}
+```
+
+And process it in this way
+```C#
+public class EventHandler : INotificationHandler<IntegrationEvent>
+{
+    public async Task Handle(IntegrationEvent notification, CancellationToken cancellationToken)
+    {
+        // your logic
     }
 }
 ```
