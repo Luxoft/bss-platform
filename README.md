@@ -283,13 +283,25 @@ To use smtp senders for notifications, first install the [NuGet package](https:/
 dotnet add package Luxoft.Bss.Platform.Notifications.Smtp
 ```
 
+Then provide implementation of ISentMessageService. Usually you are supposed to log sent messages - for example to databse. This is unique for every project and hence there is no default implementation:
+```C#
+public class YourSentMessageService : ISentMessageService
+{
+    public Task ProcessAsync(MailMessage message, CancellationToken token)
+    {
+        // do nothing
+        return Task.CompletedTask;
+    }
+}
+```
+
 Then register notifications service in DI
 ```C#
 services
-    .AddPlatformNotificationSender<SentStub>(builder.Environment, builder.Configuration)
+    .AddPlatformNotificationSender<YourSentMessageService>(builder.Environment, builder.Configuration)
 ```
 
- And provide some actual smtp senders, at least one. You are welcome to use senders provided with this package:
+And provide some actual smtp senders, at least one - as implementation of ISmtpSender. You are welcome to use senders provided with this package:
 ```C#
 services
     .AddPlatformSmtpClients(builder.Configuration)
