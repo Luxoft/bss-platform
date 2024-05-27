@@ -34,6 +34,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.Events", "Bss.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.Events.Abstractions", "Bss.Platform.Events.Abstractions\Bss.Platform.Events.Abstractions.csproj", "{BE2E219F-3F3B-48E8-B13B-A71321BB6372}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.Notifications.Smtp", "Bss.Platform.Notifications.Smtp\Bss.Platform.Notifications.Smtp.csproj", "{A97421A9-58B7-4948-8231-2028B5D11F36}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Notifications", "Notifications", "{94640F4D-8BC6-407F-835E-73B454972CAD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,6 +54,7 @@ Global
 		{285EBB7B-6B2A-453E-98F6-30AC38317A76} = {8F22FE4E-8FD4-4309-8B47-C33AA6E52052}
 		{51668BE6-C4A4-4E62-9BEC-529C33A434DB} = {80AA8C01-842D-4A5F-BCBE-48E0361783A0}
 		{BE2E219F-3F3B-48E8-B13B-A71321BB6372} = {80AA8C01-842D-4A5F-BCBE-48E0361783A0}
+		{A97421A9-58B7-4948-8231-2028B5D11F36} = {94640F4D-8BC6-407F-835E-73B454972CAD}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{860BFBD8-26EA-44F9-980E-21B828FC8F72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -92,5 +97,9 @@ Global
 		{BE2E219F-3F3B-48E8-B13B-A71321BB6372}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BE2E219F-3F3B-48E8-B13B-A71321BB6372}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BE2E219F-3F3B-48E8-B13B-A71321BB6372}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A97421A9-58B7-4948-8231-2028B5D11F36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A97421A9-58B7-4948-8231-2028B5D11F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A97421A9-58B7-4948-8231-2028B5D11F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A97421A9-58B7-4948-8231-2028B5D11F36}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

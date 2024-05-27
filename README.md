@@ -17,6 +17,7 @@ This repository offers a wide collection of .NET packages for use in microservic
 - [Kubernetes Insights](#Insights)
 - [Kubernetes Health Checks](#Health-Checks)
 - [NHibernate](#NHibernate)
+- [Notifications Smtp](#Smtp)
 
 ## RabbitMQ
 
@@ -272,3 +273,56 @@ To mock IQueryable, in your code, call:
 var entity = new Entity();
 repository.GetQueryable().Returns(new TestQueryable<Entity>(entity));
 ```
+
+## Notifications
+
+### Smtp
+
+To use smtp senders for notifications, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Notifications.Smtp):
+```shell
+dotnet add package Luxoft.Bss.Platform.Notifications.Smtp
+```
+
+Then register notifications service in DI
+```C#
+services
+    .AddPlatformNotificationSender<SentStub>(builder.Environment, builder.Configuration)
+```
+
+ And provide some actual smtp senders, at least one. You are welcome to use senders provided with this package:
+```C#
+services
+    .AddPlatformSmtpClients(builder.Configuration)
+```
+
+Then fill configuration settings:
+```json
+{
+  "NotificationSender": {
+    "SmtpEnabled": true, -- set false to disable provided smtp sender. skip this setting if using custom senders
+    "OutputFolder": "c:\\logs\\absences", -- set to empty string to disable provided file sender. skip this setting if using custom senders
+    "Server": "puppy.luxoft.com", -- smtp server host
+    "Port": 25, -- smtp server port
+    "RedirectTo": ["test@email.com"] -- this address will be used as single recipient for all messages on non-prod environments
+  }
+}
+```
+
+Now you can send messages to smtp server:
+```C#
+async (IEmbeddedResourcesService embeddedResourcesService, INotificationSender sender, CancellationToken token) =>
+{
+    var message = new EmailDto("test bss message", "<html><img src=\"inlined picture.png\"/>i am a test text</html>", "from@address.com", new[] { "to@address.com" })
+    {
+        Attachments = new []
+        {
+            new AttachmentDto("not inlined attachment.xlsx", GetResource(embeddedResourcesService, "not inlined attachment.xlsx").ToArray(), false),
+            new AttachmentDto("inlined picture.png", GetResource(embeddedResourcesService, "inlined picture.png").ToArray())
+        }
+    };
+    
+    await sender.SendAsync(message, token);
+})
+```
+
+Note that attachment will be inlined only if its 'Inline' field is true and its name is referred as image source in message body (see above example).
