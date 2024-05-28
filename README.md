@@ -319,4 +319,4 @@ public class YourNotificationRequestHandler : IRequestHandler<YourNotificationRe
 ```
 
 > [!NOTE]
-> Note that attachment will be inlined only if its 'Inline' field is true and its name is referred as image source in message body (see above example).
+> Note that attachment will be inlined only if its 'Inline' field is true and its name is referred as image source in message body.
