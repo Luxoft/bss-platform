@@ -276,42 +276,22 @@ repository.GetQueryable().Returns(new TestQueryable<Entity>(entity));
 
 ## Notifications
 
-### Smtp
-
-To use smtp senders for notifications, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Notifications.Smtp):
+To use platform senders for notifications, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Notifications):
 ```shell
-dotnet add package Luxoft.Bss.Platform.Notifications.Smtp
-```
-
-Then provide implementation of ISentMessageService. Usually you are supposed to log sent messages - for example to databse. This is unique for every project and hence there is no default implementation:
-```C#
-public class YourSentMessageService : ISentMessageService
-{
-    public Task ProcessAsync(MailMessage message, CancellationToken token)
-    {
-        // do nothing
-        return Task.CompletedTask;
-    }
-}
+dotnet add package Luxoft.Bss.Platform.Notifications
 ```
 
 Then register notifications service in DI
 ```C#
 services
-    .AddPlatformNotificationSender<YourSentMessageService>(builder.Environment, builder.Configuration)
-```
-
-And provide some actual smtp senders, at least one - as implementation of ISmtpSender. You are welcome to use senders provided with this package:
-```C#
-services
-    .AddPlatformSmtpClients(builder.Configuration)
+    .AddPlatformNotifications(builder.Environment, builder.Configuration)
 ```
 
 Then fill configuration settings:
 ```json
 {
   "NotificationSender": {
-    "SmtpEnabled": true, -- set false to disable provided smtp sender. skip this setting if using custom senders
+    "IsSmtpEnabled": true, -- set false to disable provided smtp sender. skip this setting if using custom senders
     "OutputFolder": "c:\\logs\\absences", -- set to empty string to disable provided file sender. skip this setting if using custom senders
     "Server": "puppy.luxoft.com", -- smtp server host
     "Port": 25, -- smtp server port
@@ -322,16 +302,17 @@ Then fill configuration settings:
 
 Now you can send messages to smtp server:
 ```C#
-async (IEmbeddedResourcesService embeddedResourcesService, INotificationSender sender, CancellationToken token) =>
+async (IEmailSender sender, CancellationToken token) =>
 {
-    var message = new EmailDto("test bss message", "<html><img src=\"inlined picture.png\"/>i am a test text</html>", "from@address.com", new[] { "to@address.com" })
-    {
-        Attachments = new []
-        {
-            new AttachmentDto("not inlined attachment.xlsx", GetResource(embeddedResourcesService, "not inlined attachment.xlsx").ToArray(), false),
-            new AttachmentDto("inlined picture.png", GetResource(embeddedResourcesService, "inlined picture.png").ToArray())
-        }
-    };
+    var attachment = new Attachment(new MemoryStream(), "inlined picture.png");
+    attachment.ContentDisposition!.Inline = true;
+    
+	var message = new EmailModel(
+            "test bss message",
+            "<html><img src=\"inlined picture.png\"/>i am a test text</html>",
+            new MailAddress("from@address.com"),
+            new[] { new MailAddress("to@address.com") },
+            Attachments: new[] { attachment });
     
     await sender.SendAsync(message, token);
 })
