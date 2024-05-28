@@ -17,7 +17,7 @@ This repository offers a wide collection of .NET packages for use in microservic
 - [Kubernetes Insights](#Insights)
 - [Kubernetes Health Checks](#Health-Checks)
 - [NHibernate](#NHibernate)
-- [Notifications Smtp](#Smtp)
+- [Notifications](#Notifications)
 
 ## RabbitMQ
 
