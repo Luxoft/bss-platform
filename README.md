@@ -299,7 +299,7 @@ Then fill configuration settings:
 
 Now you can send messages to smtp server:
 ```C#
-public class YourNotificationRequestHandler : IRequestHandler<YourNotificationRequest>
+public class YourNotificationRequestHandler(IEmailSender sender) : IRequestHandler<YourNotificationRequest>
 {
     public async Task Handle(YourNotificationRequest request, CancellationToken cancellationToken)
     {
