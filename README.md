@@ -299,20 +299,24 @@ Then fill configuration settings:
 
 Now you can send messages to smtp server:
 ```C#
-async (IEmailSender sender, CancellationToken token) =>
+public class YourNotificationRequestHandler : IRequestHandler<YourNotificationRequest>
 {
-    var attachment = new Attachment(new MemoryStream(), "inlined picture.png");
-    attachment.ContentDisposition!.Inline = true;
+    public async Task Handle(YourNotificationRequest request, CancellationToken cancellationToken)
+    {
+        var attachment = new Attachment(new MemoryStream(), request.AttachmentName);
+        attachment.ContentDisposition!.Inline = true;
     
-	var message = new EmailModel(
-            "test bss message",
-            "<html><img src=\"inlined picture.png\"/>i am a test text</html>",
-            new MailAddress("from@address.com"),
-            new[] { new MailAddress("to@address.com") },
+	    var message = new EmailModel(
+            request.Subject,
+            request.Body,
+            new MailAddress(request.From),
+            new[] { new MailAddress(request.To) },
             Attachments: new[] { attachment });
     
-    await sender.SendAsync(message, token);
-})
+        await sender.SendAsync(message, token);
+    }
+}
 ```
 
+[!NOTE]
 Note that attachment will be inlined only if its 'Inline' field is true and its name is referred as image source in message body (see above example).
