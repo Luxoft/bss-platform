@@ -306,7 +306,7 @@ public class YourNotificationRequestHandler : IRequestHandler<YourNotificationRe
         var attachment = new Attachment(new MemoryStream(), request.AttachmentName);
         attachment.ContentDisposition!.Inline = true;
     
-	    var message = new EmailModel(
+        var message = new EmailModel(
             request.Subject,
             request.Body,
             new MailAddress(request.From),
@@ -318,5 +318,5 @@ public class YourNotificationRequestHandler : IRequestHandler<YourNotificationRe
 }
 ```
 
-[!NOTE]
-Note that attachment will be inlined only if its 'Inline' field is true and its name is referred as image source in message body (see above example).
+> [!NOTE]
+> Note that attachment will be inlined only if its 'Inline' field is true and its name is referred as image source in message body (see above example).
