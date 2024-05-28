@@ -17,6 +17,7 @@ This repository offers a wide collection of .NET packages for use in microservic
 - [Kubernetes Insights](#Insights)
 - [Kubernetes Health Checks](#Health-Checks)
 - [NHibernate](#NHibernate)
+- [Notifications](#Notifications)
 
 ## RabbitMQ
 
@@ -272,3 +273,50 @@ To mock IQueryable, in your code, call:
 var entity = new Entity();
 repository.GetQueryable().Returns(new TestQueryable<Entity>(entity));
 ```
+
+## Notifications
+
+To use platform senders for notifications, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Notifications):
+```shell
+dotnet add package Luxoft.Bss.Platform.Notifications
+```
+
+Then register notifications service in DI
+```C#
+services
+    .AddPlatformNotifications(builder.Environment, builder.Configuration)
+```
+
+Then fill configuration settings:
+```json
+{
+  "NotificationSender": {
+    "Server": "smtp.server.com", -- smtp server host
+    "RedirectTo": ["test@email.com"] -- this address will be used as single recipient for all messages on non-prod environments
+  }
+}
+```
+
+Now you can send messages to smtp server:
+```C#
+public class YourNotificationRequestHandler(IEmailSender sender) : IRequestHandler<YourNotificationRequest>
+{
+    public async Task Handle(YourNotificationRequest request, CancellationToken cancellationToken)
+    {
+        var attachment = new Attachment(new MemoryStream(), request.AttachmentName);
+        attachment.ContentDisposition!.Inline = true;
+    
+        var message = new EmailModel(
+            request.Subject,
+            request.Body,
+            new MailAddress(request.From),
+            new[] { new MailAddress(request.To) },
+            Attachments: new[] { attachment });
+    
+        await sender.SendAsync(message, token);
+    }
+}
+```
+
+> [!NOTE]
+> Note that attachment will be inlined only if its 'Inline' field is true and its name is referred as image source in message body.
