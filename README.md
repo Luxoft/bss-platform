@@ -18,6 +18,7 @@ This repository offers a wide collection of .NET packages for use in microservic
 - [Kubernetes Health Checks](#Health-Checks)
 - [NHibernate](#NHibernate)
 - [Notifications](#Notifications)
+- [Notifications Audit](#Notifications-Audit)
 
 ## RabbitMQ
 
@@ -320,3 +321,18 @@ public class YourNotificationRequestHandler(IEmailSender sender) : IRequestHandl
 
 > [!NOTE]
 > Note that attachment will be inlined only if its 'Inline' field is true and its name is referred as image source in message body.
+
+### Notifications Audit
+
+To use platform senders for notifications, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Notifications.Audit):
+```shell
+dotnet add package Luxoft.Bss.Platform.Notifications.Audit
+```
+
+Then register notifications service in DI with provided sql connection
+```C#
+services
+    .AddPlatformNotificationsAudit(o => o.ConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")!);
+```
+
+Thats all - db schema and tables will be generated on application start (you can change schema name on DI step, table names are not editable).

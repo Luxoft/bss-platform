@@ -4,9 +4,11 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
+    <PackageVersion Include="Dapper" Version="2.1.35" />
     <PackageVersion Include="DotNetCore.CAP.Dashboard" Version="8.1.2" />
     <PackageVersion Include="DotNetCore.CAP.RabbitMQ" Version="8.1.2" />
     <PackageVersion Include="DotNetCore.CAP.SqlServer" Version="8.1.2" />
+    <PackageVersion Include="Microsoft.SqlServer.SqlManagementObjects" Version="171.30.0" />
     <PackageVersion Include="Savorboard.CAP.InMemoryMessageQueue" Version="8.0.0" />
     <PackageVersion Include="MediatR" Version="12.2.0" />
     <PackageVersion Include="Microsoft.ApplicationInsights" Version="2.22.0" />

@@ -6,7 +6,7 @@ using Bss.Platform.Notifications.Models;
 
 namespace Bss.Platform.Notifications.Services;
 
-internal class EmailSender(IEnumerable<IMailMessageSender> senders, IRedirectService? redirectService = null) : IEmailSender
+internal class EmailSender(IEnumerable<IMailMessageSender> senders, IRedirectService? redirectService = null, IAuditService? auditService = null) : IEmailSender
 {
     public async Task<MailMessage> SendAsync(EmailModel model, CancellationToken token)
     {
@@ -17,6 +17,11 @@ internal class EmailSender(IEnumerable<IMailMessageSender> senders, IRedirectSer
         foreach (var sender in senders)
         {
             await sender.SendAsync(message, token);
+        }
+
+        if (auditService != null)
+        {
+            await auditService.LogAsync(message, token);
         }
 
         return message;
