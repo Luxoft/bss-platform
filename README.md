@@ -291,10 +291,7 @@ Then fill configuration settings:
 ```json
 {
   "NotificationSender": {
-    "IsSmtpEnabled": true, -- set false to disable provided smtp sender. skip this setting if using custom senders
-    "OutputFolder": "c:\\logs\\absences", -- set to empty string to disable provided file sender. skip this setting if using custom senders
-    "Server": "puppy.luxoft.com", -- smtp server host
-    "Port": 25, -- smtp server port
+    "Server": "smtp.server.com", -- smtp server host
     "RedirectTo": ["test@email.com"] -- this address will be used as single recipient for all messages on non-prod environments
   }
 }
