@@ -34,7 +34,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.Events", "Bss.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.Events.Abstractions", "Bss.Platform.Events.Abstractions\Bss.Platform.Events.Abstractions.csproj", "{BE2E219F-3F3B-48E8-B13B-A71321BB6372}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.Notifications.Smtp", "Bss.Platform.Notifications.Smtp\Bss.Platform.Notifications.Smtp.csproj", "{A97421A9-58B7-4948-8231-2028B5D11F36}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.Notifications", "Bss.Platform.Notifications\Bss.Platform.Notifications.csproj", "{A97421A9-58B7-4948-8231-2028B5D11F36}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Notifications", "Notifications", "{94640F4D-8BC6-407F-835E-73B454972CAD}"
 EndProject
