@@ -322,7 +322,7 @@ public class YourNotificationRequestHandler(IEmailSender sender) : IRequestHandl
 > [!NOTE]
 > Attachment will be added to notification only if:
 > - it is not inlined
-> - it is inlined and reffered by name as image source in notification text
+> - it is inlined and referred by name as image source in notification text
 
 ### Notifications Audit
 
