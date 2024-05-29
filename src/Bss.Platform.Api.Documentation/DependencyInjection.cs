@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 
+using Swashbuckle.AspNetCore.SwaggerGen;
+
 namespace Bss.Platform.Api.Documentation;
 
 public static class DependencyInjection
@@ -15,7 +17,8 @@ public static class DependencyInjection
     public static IServiceCollection AddPlatformApiDocumentation(
         this IServiceCollection services,
         IWebHostEnvironment hostEnvironment,
-        string title = "API")
+        string title = "API",
+        Action<SwaggerGenOptions>? setupAction = null)
     {
         if (hostEnvironment.IsProduction())
         {
@@ -27,8 +30,8 @@ public static class DependencyInjection
                .AddSwaggerGen(
                    x =>
                    {
-                       x.SchemaFilter<XEnumNamesSchemaFilter>();
                        x.SwaggerDoc("api", new OpenApiInfo { Title = title });
+                       x.SchemaFilter<XEnumNamesSchemaFilter>();
 
                        x.AddSecurityDefinition(
                            AuthorizationScheme,
@@ -52,6 +55,8 @@ public static class DependencyInjection
                                    new List<string>()
                                }
                            });
+
+                       setupAction?.Invoke(x);
                    });
     }
 
