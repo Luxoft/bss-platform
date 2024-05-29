@@ -37,8 +37,7 @@ public static class DependencyInjection
             throw new ArgumentException("Test email address is not provided");
         }
 
-        return services.AddScoped<IEmailSender, TestEmailSender>()
-                       .AddScoped<IRedirectService, RedirectService>();
+        return services.AddScoped<IEmailSender, EmailSenderTest>();
     }
 
     private static IServiceCollection AddMailMessageSenders(this IServiceCollection services, NotificationSenderOptions settings)

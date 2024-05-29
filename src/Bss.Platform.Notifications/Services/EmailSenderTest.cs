@@ -7,9 +7,21 @@ using Microsoft.Extensions.Options;
 
 namespace Bss.Platform.Notifications.Services;
 
-internal class RedirectService(IOptions<NotificationSenderOptions> settings) : IRedirectService
+internal class EmailSenderTest(
+    IEnumerable<IMailMessageSender> senders,
+    IOptions<NotificationSenderOptions> settings,
+    IAuditService? auditService = null)
+    : EmailSender(senders, auditService)
 {
-    public void Redirect(MailMessage message)
+    protected override MailMessage Convert(EmailModel model)
+    {
+        var message = base.Convert(model);
+        this.ChangeRecipients(message);
+
+        return message;
+    }
+
+    private void ChangeRecipients(MailMessage message)
     {
         AddRecipientsToBody(message);
 
@@ -21,14 +33,6 @@ internal class RedirectService(IOptions<NotificationSenderOptions> settings) : I
         }
     }
 
-    private static void ClearRecipients(MailMessage message)
-    {
-        message.To.Clear();
-        message.CC.Clear();
-        message.Bcc.Clear();
-        message.ReplyToList.Clear();
-    }
-
     private static void AddRecipientsToBody(MailMessage message)
     {
         var originalRecipients =
@@ -38,5 +42,13 @@ internal class RedirectService(IOptions<NotificationSenderOptions> settings) : I
             + $"Reply To: {string.Join("; ", message.ReplyToList.Select(x => x.Address))}<br><br>";
 
         message.Body = $"{originalRecipients}{message.Body}";
+    }
+
+    private static void ClearRecipients(MailMessage message)
+    {
+        message.To.Clear();
+        message.CC.Clear();
+        message.Bcc.Clear();
+        message.ReplyToList.Clear();
     }
 }

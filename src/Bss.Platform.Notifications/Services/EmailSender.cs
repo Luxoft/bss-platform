@@ -17,7 +17,7 @@ internal class EmailSender(IEnumerable<IMailMessageSender> senders, IAuditServic
             await sender.SendAsync(message, token);
         }
 
-        if (auditService != null)
+        if (auditService is not null)
         {
             await auditService.LogAsync(message, token);
         }
