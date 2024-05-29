@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageId>Luxoft.Bss.Platform.Notifications.Audit</PackageId>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Bss.Platform.Notifications\Bss.Platform.Notifications.csproj"/>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Dapper"/>
+        <PackageReference Include="Microsoft.SqlServer.SqlManagementObjects"/>
+    </ItemGroup>
+</Project>

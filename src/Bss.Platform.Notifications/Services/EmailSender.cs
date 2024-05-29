@@ -6,23 +6,26 @@ using Bss.Platform.Notifications.Models;
 
 namespace Bss.Platform.Notifications.Services;
 
-internal class EmailSender(IEnumerable<IMailMessageSender> senders, IRedirectService? redirectService = null) : IEmailSender
+internal class EmailSender(IEnumerable<IMailMessageSender> senders, IAuditService? auditService = null) : IEmailSender
 {
-    public async Task<MailMessage> SendAsync(EmailModel model, CancellationToken token)
+    public async Task<MailMessage> SendAsync(EmailModel emailModel, CancellationToken token)
     {
-        var message = Convert(model);
-
-        redirectService?.Redirect(message);
+        var message = this.Convert(emailModel);
 
         foreach (var sender in senders)
         {
             await sender.SendAsync(message, token);
         }
 
+        if (auditService is not null)
+        {
+            await auditService.LogAsync(message, token);
+        }
+
         return message;
     }
 
-    private static MailMessage Convert(EmailModel model)
+    protected virtual MailMessage Convert(EmailModel model)
     {
         var mailMessage = new MailMessage { Subject = model.Subject, Body = model.Body, From = model.From, IsBodyHtml = true };
 
@@ -50,9 +53,9 @@ internal class EmailSender(IEnumerable<IMailMessageSender> senders, IRedirectSer
     {
         foreach (var attachment in attachments)
         {
-            mailMessage.Attachments.Add(attachment);
             if (!attachment.ContentDisposition!.Inline)
             {
+                mailMessage.Attachments.Add(attachment);
                 continue;
             }
 
@@ -63,6 +66,7 @@ internal class EmailSender(IEnumerable<IMailMessageSender> senders, IRedirectSer
             }
 
             mailMessage.Body = Regex.Replace(mailMessage.Body, srcRegex, $"src=\"cid:{attachment.ContentId}\"", RegexOptions.IgnoreCase);
+            mailMessage.Attachments.Add(attachment);
         }
     }
 
