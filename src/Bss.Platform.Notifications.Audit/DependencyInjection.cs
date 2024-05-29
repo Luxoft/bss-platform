@@ -16,8 +16,9 @@ public static class DependencyInjection
         var settings = new NotificationAuditOptions();
         setup?.Invoke(settings);
 
-        return services.AddHostedService<AuditSchemaMigrationService>()
-                       .AddScoped<IAuditService, AuditService>()
-                       .AddSingleton<IOptions<NotificationAuditOptions>>(_ => Options.Create(settings));
+        return services
+               .AddHostedService<AuditSchemaMigrationService>()
+               .AddScoped<IAuditService, AuditService>()
+               .AddSingleton<IOptions<NotificationAuditOptions>>(_ => Options.Create(settings));
     }
 }

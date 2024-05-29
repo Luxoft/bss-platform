@@ -14,24 +14,10 @@ namespace Bss.Platform.Notifications.Audit.Services;
 public class AuditService(ILogger<AuditService> logger, IOptions<NotificationAuditOptions> settings) : IAuditService
 {
     private const string Sql = """
-                                       insert into [{0}].[{1}]
-                                          ([id],
-                                          [from],
-                                          [to],
-                                          [copy],
-                                          [replyTo],
-                                          [subject],
-                                          [message],
-                                          [date])
-                                       values
-                                          (newid(),
-                                          @from,
-                                          @to,
-                                          @copy,
-                                          @replyTo,
-                                          @subject,
-                                          @message,
-                                          getdate())
+                                   insert into [{0}].[{1}]
+                                       ([id], [from], [to], [copy], [replyTo], [subject], [message], [timestamp])
+                                   values
+                                       (newid(), @from, @to, @copy, @replyTo, @subject, @message, getdate())
                                """;
 
     public async Task LogAsync(MailMessage message, CancellationToken token)
@@ -42,7 +28,7 @@ public class AuditService(ILogger<AuditService> logger, IOptions<NotificationAud
             await db.OpenAsync(token);
 
             await db.ExecuteAsync(
-                string.Format(Sql, settings.Value.Schema, NotificationAuditOptions.TableName),
+                string.Format(Sql, settings.Value.Schema, settings.Value.Table),
                 new
                 {
                     from = message.From!.Address,

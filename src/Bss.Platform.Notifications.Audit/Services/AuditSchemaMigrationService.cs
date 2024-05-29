@@ -16,8 +16,6 @@ public class AuditSchemaMigrationService(ILogger<AuditSchemaMigrationService> lo
     {
         try
         {
-            logger.LogInformation("Schema migration: start");
-
             await using var connection = new SqlConnection(settings.Value.ConnectionString);
             await connection.OpenAsync(stoppingToken);
 
@@ -31,16 +29,18 @@ public class AuditSchemaMigrationService(ILogger<AuditSchemaMigrationService> lo
 
             var database = server.Databases[catalog];
 
-            if (!database.Tables.Contains(NotificationAuditOptions.TableName, settings.Value.Schema))
+            if (!database.Tables.Contains(settings.Value.Table, settings.Value.Schema))
             {
                 if (!database.Schemas.Contains(settings.Value.Schema))
                 {
+                    logger.LogInformation("Creating schema [{Schema}] ...", settings.Value.Schema);
                     server.ConnectionContext.ExecuteNonQuery($"CREATE SCHEMA [{settings.Value.Schema}]");
                 }
 
+                logger.LogInformation("Creating table [{Table}] ...", settings.Value.Table);
                 server.ConnectionContext.ExecuteNonQuery(
                     $"""
-                     CREATE TABLE [{settings.Value.Schema}].[{NotificationAuditOptions.TableName}] (
+                     CREATE TABLE [{settings.Value.Schema}].[{settings.Value.Table}] (
                                      [id] [uniqueidentifier] NOT NULL PRIMARY KEY,
                                      [from] [nvarchar](255) NOT NULL,
                                      [to] [nvarchar](max) NULL,
@@ -48,17 +48,17 @@ public class AuditSchemaMigrationService(ILogger<AuditSchemaMigrationService> lo
                                      [replyTo] [nvarchar](max) NULL,
                                      [subject] [nvarchar](max) NULL,
                                      [message] [nvarchar](max) NULL,
-                                     [date] [datetime2](7) NOT NULL)
+                                     [timestamp] [datetime2](7) NOT NULL)
                      """);
             }
 
             await connection.CloseAsync();
 
-            logger.LogInformation("Schema migration: end");
+            logger.LogInformation("Schema migration successfully complete");
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Schema migration: failed");
+            logger.LogError(e, "Schema migration was failed");
             throw;
         }
     }

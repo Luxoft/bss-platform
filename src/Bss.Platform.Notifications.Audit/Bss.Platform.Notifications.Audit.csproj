@@ -3,13 +3,10 @@
         <PackageId>Luxoft.Bss.Platform.Notifications.Audit</PackageId>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Dapper" />
-        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"/>
-        <PackageReference Include="Microsoft.Data.SqlClient"/>
-        <PackageReference Include="Microsoft.SqlServer.SqlManagementObjects" />
+        <ProjectReference Include="..\Bss.Platform.Notifications\Bss.Platform.Notifications.csproj"/>
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\Bss.Platform.Notifications\Bss.Platform.Notifications.csproj" />
+        <PackageReference Include="Dapper"/>
+        <PackageReference Include="Microsoft.SqlServer.SqlManagementObjects"/>
     </ItemGroup>
-
 </Project>
