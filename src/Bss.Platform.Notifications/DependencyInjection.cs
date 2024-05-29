@@ -17,20 +17,19 @@ public static class DependencyInjection
     {
         var settings = configuration.GetSection(NotificationSenderOptions.SectionName).Get<NotificationSenderOptions>()!;
 
-        return AddTestEnvironmentRedirection(services, hostEnvironment, settings)
-               .AddMailMessageSenders(settings)
-               .Configure<NotificationSenderOptions>(configuration.GetSection(NotificationSenderOptions.SectionName))
-               .AddScoped<IEmailSender, EmailSender>();
+        return services.AddEmailSender(hostEnvironment, settings)
+                       .AddMailMessageSenders(settings)
+                       .Configure<NotificationSenderOptions>(configuration.GetSection(NotificationSenderOptions.SectionName));
     }
 
-    private static IServiceCollection AddTestEnvironmentRedirection(
+    private static IServiceCollection AddEmailSender(
         this IServiceCollection services,
         IHostEnvironment hostEnvironment,
         NotificationSenderOptions settings)
     {
         if (hostEnvironment.IsProduction())
         {
-            return services;
+            return services.AddScoped<IEmailSender, EmailSender>();
         }
 
         if (settings.RedirectTo?.Length == 0)
@@ -38,7 +37,8 @@ public static class DependencyInjection
             throw new ArgumentException("Test email address is not provided");
         }
 
-        return services.AddScoped<IRedirectService, RedirectService>();
+        return services.AddScoped<IEmailSender, TestEmailSender>()
+                       .AddScoped<IRedirectService, RedirectService>();
     }
 
     private static IServiceCollection AddMailMessageSenders(this IServiceCollection services, NotificationSenderOptions settings)
