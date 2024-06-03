@@ -44,7 +44,7 @@ internal class EmailSender(
         }
         else
         {
-            AddRange(mailMessage.To, settings.Value.DefaultRecipients!.Select(x => new MailAddress(x)));
+            AddRange(mailMessage.To, settings.Value.DefaultRecipients.Select(x => new MailAddress(x)));
 
             logger.LogWarning(
                 "Recipients are not provided for email '{subject}', redirecting to '{default}'",
