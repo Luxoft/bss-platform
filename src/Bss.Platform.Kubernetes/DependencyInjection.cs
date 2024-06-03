@@ -29,4 +29,17 @@ public static class DependencyInjection
         app
             .UseHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
             .UseHealthChecks("/health/ready", new HealthCheckOptions { Predicate = x => x.Name == SqlHealthCheck });
+
+    public static IHealthChecksBuilder AddPlatformKubernetesHealthChecks(
+        this IServiceCollection services,
+        string connectionString,
+        string sqlCheckName) =>
+        services
+            .AddHealthChecks()
+            .AddSqlServer(connectionString, name: sqlCheckName);
+
+    public static IApplicationBuilder UsePlatformKubernetesHealthChecks(this IApplicationBuilder app, params string[] readyCheckNames) =>
+        app
+            .UseHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
+            .UseHealthChecks("/health/ready", new HealthCheckOptions { Predicate = x => readyCheckNames.Contains(x.Name) });
 }

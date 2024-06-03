@@ -10,7 +10,7 @@ namespace Bss.Platform.Logging;
 
 public static class DependencyInjection
 {
-    public static void AddPlatformLogging(this IHostBuilder builder) =>
+    public static IHostBuilder AddPlatformLogging(this IHostBuilder builder) =>
         builder
             .UseSerilog(
                 (context, services, configuration) =>
