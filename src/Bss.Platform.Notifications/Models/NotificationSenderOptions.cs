@@ -13,4 +13,6 @@ public class NotificationSenderOptions
     public int Port { get; set; } = 25;
 
     public string[]? RedirectTo { get; set; }
+
+    public string[] DefaultRecipients { get; set; } = [];
 }

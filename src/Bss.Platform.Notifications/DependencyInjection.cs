@@ -27,6 +27,11 @@ public static class DependencyInjection
         IHostEnvironment hostEnvironment,
         NotificationSenderOptions settings)
     {
+        if (settings.DefaultRecipients.Length == 0)
+        {
+            throw new ArgumentException("Default email address is not provided");
+        }
+
         if (hostEnvironment.IsProduction())
         {
             return services.AddScoped<IEmailSender, EmailSender>();

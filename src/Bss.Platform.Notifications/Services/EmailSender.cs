@@ -4,10 +4,19 @@ using System.Text.RegularExpressions;
 using Bss.Platform.Notifications.Interfaces;
 using Bss.Platform.Notifications.Models;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
 namespace Bss.Platform.Notifications.Services;
 
-internal class EmailSender(IEnumerable<IMailMessageSender> senders, IAuditService? auditService = null) : IEmailSender
+internal class EmailSender(
+    IEnumerable<IMailMessageSender> senders,
+    IOptions<NotificationSenderOptions> settings,
+    ILogger<EmailSender> logger,
+    IAuditService? auditService = null) : IEmailSender
 {
+    protected NotificationSenderOptions Settings => settings.Value;
+
     public async Task<MailMessage> SendAsync(EmailModel emailModel, CancellationToken token)
     {
         var message = this.Convert(emailModel);
@@ -29,7 +38,19 @@ internal class EmailSender(IEnumerable<IMailMessageSender> senders, IAuditServic
     {
         var mailMessage = new MailMessage { Subject = model.Subject, Body = model.Body, From = model.From, IsBodyHtml = true };
 
-        AddRange(mailMessage.To, model.To);
+        if (model.To.Length != 0)
+        {
+            AddRange(mailMessage.To, model.To);
+        }
+        else
+        {
+            AddRange(mailMessage.To, settings.Value.DefaultRecipients.Select(x => new MailAddress(x)));
+
+            logger.LogWarning(
+                "Recipients are not provided for email '{subject}', redirecting to '{default}'",
+                mailMessage.Subject,
+                mailMessage.To);
+        }
 
         if (model.Cc?.Length > 0)
         {
