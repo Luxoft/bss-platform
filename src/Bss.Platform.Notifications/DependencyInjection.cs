@@ -27,9 +27,9 @@ public static class DependencyInjection
         IHostEnvironment hostEnvironment,
         NotificationSenderOptions settings)
     {
-        if (settings.RedirectTo?.Length == 0)
+        if (settings.DefaultRecipients?.Length == 0)
         {
-            throw new ArgumentException("Test email address is not provided");
+            throw new ArgumentException("Default email address is not provided");
         }
 
         if (hostEnvironment.IsProduction())
@@ -37,9 +37,9 @@ public static class DependencyInjection
             return services.AddScoped<IEmailSender, EmailSender>();
         }
 
-        if (settings.DefaultRecipients?.Length == 0)
+        if (settings.RedirectTo?.Length == 0)
         {
-            throw new ArgumentException("Default email address is not provided");
+            throw new ArgumentException("Test email address is not provided");
         }
 
         return services.AddScoped<IEmailSender, EmailSenderTest>();
