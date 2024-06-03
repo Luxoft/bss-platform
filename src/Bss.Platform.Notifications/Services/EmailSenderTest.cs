@@ -3,6 +3,7 @@
 using Bss.Platform.Notifications.Interfaces;
 using Bss.Platform.Notifications.Models;
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Bss.Platform.Notifications.Services;
@@ -10,8 +11,9 @@ namespace Bss.Platform.Notifications.Services;
 internal class EmailSenderTest(
     IEnumerable<IMailMessageSender> senders,
     IOptions<NotificationSenderOptions> settings,
+    ILogger<EmailSenderTest> logger,
     IAuditService? auditService = null)
-    : EmailSender(senders, settings, auditService)
+    : EmailSender(senders, settings, logger, auditService)
 {
     protected override MailMessage Convert(EmailModel model)
     {

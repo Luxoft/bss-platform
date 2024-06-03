@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Bss.Platform.Notifications.Interfaces;
 using Bss.Platform.Notifications.Models;
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Bss.Platform.Notifications.Services;
@@ -11,6 +12,7 @@ namespace Bss.Platform.Notifications.Services;
 internal class EmailSender(
     IEnumerable<IMailMessageSender> senders,
     IOptions<NotificationSenderOptions> settings,
+    ILogger<EmailSender> logger,
     IAuditService? auditService = null) : IEmailSender
 {
     protected NotificationSenderOptions Settings => settings.Value;
@@ -36,7 +38,19 @@ internal class EmailSender(
     {
         var mailMessage = new MailMessage { Subject = model.Subject, Body = model.Body, From = model.From, IsBodyHtml = true };
 
-        AddRange(mailMessage.To, model.To.Length != 0 ? model.To : settings.Value.DefaultRecipients.Select(x => new MailAddress(x)));
+        if (model.To.Length != 0)
+        {
+            AddRange(mailMessage.To, model.To);
+        }
+        else
+        {
+            logger.LogWarning(
+                "No recipients are provided for email '{subject}', redirecting to '{default}'",
+                mailMessage.Subject,
+                settings.Value.DefaultRecipients);
+
+            AddRange(mailMessage.To, settings.Value.DefaultRecipients.Select(x => new MailAddress(x)));
+        }
 
         if (model.Cc?.Length > 0)
         {
