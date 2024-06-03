@@ -4,9 +4,14 @@ using System.Text.RegularExpressions;
 using Bss.Platform.Notifications.Interfaces;
 using Bss.Platform.Notifications.Models;
 
+using Microsoft.Extensions.Options;
+
 namespace Bss.Platform.Notifications.Services;
 
-internal class EmailSender(IEnumerable<IMailMessageSender> senders, IAuditService? auditService = null) : IEmailSender
+internal class EmailSender(
+    IEnumerable<IMailMessageSender> senders,
+    IOptions<NotificationSenderOptions> settings,
+    IAuditService? auditService = null) : IEmailSender
 {
     public async Task<MailMessage> SendAsync(EmailModel emailModel, CancellationToken token)
     {
@@ -29,7 +34,7 @@ internal class EmailSender(IEnumerable<IMailMessageSender> senders, IAuditServic
     {
         var mailMessage = new MailMessage { Subject = model.Subject, Body = model.Body, From = model.From, IsBodyHtml = true };
 
-        AddRange(mailMessage.To, model.To);
+        AddRange(mailMessage.To, model.To.Length != 0 ? model.To : settings.Value.DefaultRecipients.Select(x => new MailAddress(x)));
 
         if (model.Cc?.Length > 0)
         {

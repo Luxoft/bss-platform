@@ -293,7 +293,8 @@ Then fill configuration settings:
 {
   "NotificationSender": {
     "Server": "smtp.server.com", -- smtp server host
-    "RedirectTo": ["test@email.com"] -- this address will be used as single recipient for all messages on non-prod environments
+    "RedirectTo": ["test@email.com"], -- all messages on non-prod environments will be sent to these addresses, recipients will be listed in message body
+	"DefaultRecipients": ["your_support@email.com"] -- if no recipients are provided for a message then these emails will become recipients
   }
 }
 ```
