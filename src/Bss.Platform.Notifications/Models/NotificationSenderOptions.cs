@@ -14,5 +14,5 @@ public class NotificationSenderOptions
 
     public string[]? RedirectTo { get; set; }
 
-    public string[] DefaultRecipients { get; set; } = default!;
+    public string[]? DefaultRecipients { get; set; }
 }

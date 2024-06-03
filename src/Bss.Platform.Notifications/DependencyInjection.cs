@@ -37,6 +37,11 @@ public static class DependencyInjection
             throw new ArgumentException("Test email address is not provided");
         }
 
+        if (settings.DefaultRecipients?.Length == 0)
+        {
+            throw new ArgumentException("Default email address is not provided");
+        }
+
         return services.AddScoped<IEmailSender, EmailSenderTest>();
     }
 
