@@ -27,14 +27,14 @@ public static class DependencyInjection
         IHostEnvironment hostEnvironment,
         NotificationSenderOptions settings)
     {
-        if (hostEnvironment.IsProduction())
-        {
-            return services.AddScoped<IEmailSender, EmailSender>();
-        }
-
         if (settings.RedirectTo?.Length == 0)
         {
             throw new ArgumentException("Test email address is not provided");
+        }
+
+        if (hostEnvironment.IsProduction())
+        {
+            return services.AddScoped<IEmailSender, EmailSender>();
         }
 
         if (settings.DefaultRecipients?.Length == 0)
