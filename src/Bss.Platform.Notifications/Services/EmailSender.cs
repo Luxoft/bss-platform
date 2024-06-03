@@ -13,6 +13,8 @@ internal class EmailSender(
     IOptions<NotificationSenderOptions> settings,
     IAuditService? auditService = null) : IEmailSender
 {
+    protected NotificationSenderOptions Settings => settings.Value;
+
     public async Task<MailMessage> SendAsync(EmailModel emailModel, CancellationToken token)
     {
         var message = this.Convert(emailModel);

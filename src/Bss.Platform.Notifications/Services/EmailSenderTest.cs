@@ -11,7 +11,7 @@ internal class EmailSenderTest(
     IEnumerable<IMailMessageSender> senders,
     IOptions<NotificationSenderOptions> settings,
     IAuditService? auditService = null)
-    : EmailSender(senders, auditService)
+    : EmailSender(senders, settings, auditService)
 {
     protected override MailMessage Convert(EmailModel model)
     {
@@ -27,7 +27,7 @@ internal class EmailSenderTest(
 
         ClearRecipients(message);
 
-        foreach (var address in settings.Value.RedirectTo!.Select(z => z.Trim()).Distinct().Select(z => new MailAddress(z)))
+        foreach (var address in this.Settings.RedirectTo!.Select(z => z.Trim()).Distinct().Select(z => new MailAddress(z)))
         {
             message.To.Add(address);
         }
