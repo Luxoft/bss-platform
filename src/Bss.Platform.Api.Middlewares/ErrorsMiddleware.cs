@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using System.Net.Mime;
-using System.Text.Json;
 
 using Bss.Platform.Api.Middlewares.Interfaces;
 
@@ -28,10 +27,10 @@ public class ErrorsMiddleware(RequestDelegate next, ILogger<ErrorsMiddleware> lo
 
     private Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        context.Response.ContentType = MediaTypeNames.Application.Json;
+        context.Response.ContentType = MediaTypeNames.Text.Plain;
         context.Response.StatusCode =
             (int)(serviceProvider.GetService<IStatusCodeResolver>()?.Resolve(exception) ?? HttpStatusCode.InternalServerError);
 
-        return context.Response.WriteAsync(JsonSerializer.Serialize(exception.GetBaseException().Message));
+        return context.Response.WriteAsync(exception.GetBaseException().Message);
     }
 }
