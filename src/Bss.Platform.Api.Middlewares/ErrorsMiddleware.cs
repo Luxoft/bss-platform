@@ -4,14 +4,13 @@ using System.Net.Mime;
 using Bss.Platform.Api.Middlewares.Interfaces;
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Bss.Platform.Api.Middlewares;
 
-public class ErrorsMiddleware(RequestDelegate next, ILogger<ErrorsMiddleware> logger, IServiceProvider serviceProvider)
+public class ErrorsMiddleware(RequestDelegate next)
 {
-    public async Task Invoke(HttpContext context)
+    public async Task InvokeAsync(HttpContext context, ILogger<ErrorsMiddleware> logger, IStatusCodeResolver? statusCodeResolver)
     {
         try
         {
@@ -21,16 +20,15 @@ public class ErrorsMiddleware(RequestDelegate next, ILogger<ErrorsMiddleware> lo
         {
             logger.LogError(e, "Request failed");
 
-            await this.HandleExceptionAsync(context, e);
+            await HandleExceptionAsync(context, e, statusCodeResolver);
         }
     }
 
-    private Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private static async Task HandleExceptionAsync(HttpContext context, Exception exception, IStatusCodeResolver? statusCodeResolver)
     {
         context.Response.ContentType = MediaTypeNames.Text.Plain;
-        context.Response.StatusCode =
-            (int)(serviceProvider.GetService<IStatusCodeResolver>()?.Resolve(exception) ?? HttpStatusCode.InternalServerError);
+        context.Response.StatusCode = (int)(statusCodeResolver?.Resolve(exception) ?? HttpStatusCode.InternalServerError);
 
-        return context.Response.WriteAsync(exception.GetBaseException().Message);
+        await context.Response.WriteAsync(exception.GetBaseException().Message, context.RequestAborted);
     }
 }
