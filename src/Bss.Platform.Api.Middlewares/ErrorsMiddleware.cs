@@ -4,13 +4,14 @@ using System.Net.Mime;
 using Bss.Platform.Api.Middlewares.Interfaces;
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Bss.Platform.Api.Middlewares;
 
 public class ErrorsMiddleware(RequestDelegate next)
 {
-    public async Task InvokeAsync(HttpContext context, ILogger<ErrorsMiddleware> logger, IStatusCodeResolver? statusCodeResolver)
+    public async Task InvokeAsync(HttpContext context, ILogger<ErrorsMiddleware> logger, IServiceProvider serviceProvider)
     {
         try
         {
@@ -20,7 +21,7 @@ public class ErrorsMiddleware(RequestDelegate next)
         {
             logger.LogError(e, "Request failed");
 
-            await HandleExceptionAsync(context, e, statusCodeResolver);
+            await HandleExceptionAsync(context, e, serviceProvider.GetService<IStatusCodeResolver>());
         }
     }
 
