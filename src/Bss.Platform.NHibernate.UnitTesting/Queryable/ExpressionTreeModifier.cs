@@ -27,15 +27,26 @@ internal class ExpressionTreeModifier : ExpressionVisitor
 
         var fetchInput = AvoidFetch(node);
         return fetchInput.NodeType switch
-               {
-                   ExpressionType.Constant => this.VisitConstant((ConstantExpression)fetchInput),
-                   _ => fetchInput
-               };
+        {
+            ExpressionType.Constant => this.VisitConstant((ConstantExpression)fetchInput),
+            _ => fetchInput
+        };
     }
 
-    private static Expression AvoidFetch(MethodCallExpression node) =>
-        IsFetchMethod(node.Method) ? AvoidFetch((node.Arguments[0] as MethodCallExpression)!) : node;
+    private static Expression AvoidFetch(MethodCallExpression node)
+    {
+        if (!IsFetchMethod(node.Method))
+        {
+            return node;
+        }
 
-    private static bool IsFetchMethod(MethodInfo info) =>
-        info.IsGenericMethod && VisitedMethods.Contains(info.GetGenericMethodDefinition());
+        return node.Arguments[0] switch
+        {
+            ConstantExpression constantExpression => constantExpression,
+            MethodCallExpression methodCallExpression => AvoidFetch(methodCallExpression),
+            _ => throw new ArgumentOutOfRangeException($"Not handled case - first argument is '{node.Arguments[0].GetType().Name}'")
+        };
+    }
+
+    private static bool IsFetchMethod(MethodInfo info) => info.IsGenericMethod && VisitedMethods.Contains(info.GetGenericMethodDefinition());
 }
