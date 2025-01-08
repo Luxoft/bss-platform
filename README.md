@@ -23,11 +23,16 @@ This repository offers a wide collection of .NET packages for use in microservic
 ## RabbitMQ
 
 ### Consumer
-To use the RabbitMQ consumer, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.RabbitMq.Consumer):
+
+To use the RabbitMQ consumer, first install
+the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.RabbitMq.Consumer):
+
 ```shell
 dotnet add package Luxoft.Bss.Platform.RabbitMq.Consumer
 ```
+
 In the second step, you need implement interface IRabbitMqMessageProcessor
+
 ```C#
 public class MessageProcessor : IRabbitMqMessageProcessor
 {
@@ -39,6 +44,7 @@ public class MessageProcessor : IRabbitMqMessageProcessor
 ```
 
 Finally, register the RabbitMQ consumer in DI
+
 ```C#
 services
     .AddPlatformRabbitMqClient(configuration)
@@ -46,9 +52,11 @@ services
 ```
 
 > [!IMPORTANT]
-> If you run more than one consumer, they will consume messages in parallel mode. In order to change it follow the instructions below.
+> If you run more than one consumer, they will consume messages in parallel mode. In order to change it follow the
+> instructions below.
 
 Switch consuming mode in appsettings.json file
+
 ```json
 {
   "RabbitMQ": {
@@ -60,23 +68,28 @@ Switch consuming mode in appsettings.json file
 ```
 
 Register the consumer lock service in DI
+
 ```C#
 services
     .AddPlatformRabbitMqSqlServerConsumerLock(configuration.GetConnectionString("ms sql connection string"));
 ```
 
 ## Logging
+
 To use platform logger, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Logging):
+
 ```shell
 dotnet add package Luxoft.Bss.Platform.Logging
 ```
 
 In the second step, you need register the logger in DI
+
 ```C#
 builder.Host.AddPlatformLogging();
 ```
 
 Finally, register sinks in appsettings.json file
+
 ```json
 {
   "Serilog": {
@@ -99,32 +112,44 @@ Finally, register sinks in appsettings.json file
   }
 }
 ```
+
 ## API
 
 ### Middlewares
-To use platform API middlewares, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Api.Middlewares):
+
+To use platform API middlewares, first install
+the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Api.Middlewares):
+
 ```shell
 dotnet add package Luxoft.Bss.Platform.Api.Middlewares
 ```
 
 #### Errors
+
 To log exceptions you need to use errors middleware.
+
 ```C#
 app.UsePlatformErrorsMiddleware(); // This middleware should be the first
 ```
+
 > [!IMPORTANT]
 > If you need to change response status code, then you should register status code resolver.
+
 ```C#
 services.AddSingleton<IStatusCodeResolver, YourStatusCodeResolver>();
 ```
 
 ### Documentation
-To use platform API documentation, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Api.Documentation):
+
+To use platform API documentation, first install
+the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Api.Documentation):
+
 ```shell
 dotnet add package Luxoft.Bss.Platform.Api.Documentation
 ```
 
 Finally, you need register it in DI
+
 ```C#
 services
   .AddPlatformApiDocumentation(builder.Environment);
@@ -134,7 +159,9 @@ app
 ```
 
 ## Events
+
 To use events, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Events):
+
 ```shell
 dotnet add package Luxoft.Bss.Platform.Events
 ```
@@ -142,11 +169,14 @@ dotnet add package Luxoft.Bss.Platform.Events
 ### Domain Events
 
 To use domain events, you need register it in DI
+
 ```C#
 services
   .AddPlatformDomainEvents();
 ```
+
 Now, you can publish it in this way
+
 ```C#
 public class CommandHandler(IDomainEventPublisher eventPublisher) : IRequestHandler<Command>
 {
@@ -158,6 +188,7 @@ public class CommandHandler(IDomainEventPublisher eventPublisher) : IRequestHand
 ```
 
 And process it in this way
+
 ```C#
 public class EventHandler : INotificationHandler<DomainEvent>
 {
@@ -169,7 +200,9 @@ public class EventHandler : INotificationHandler<DomainEvent>
 ```
 
 ### Integration Events
+
 In the first step, you need implement interface IIntegrationEventProcessor
+
 ```C#
 public class IntegrationEventProcessor : IIntegrationEventProcessor
 {
@@ -181,6 +214,7 @@ public class IntegrationEventProcessor : IIntegrationEventProcessor
 ```
 
 Then, register integration events in DI
+
 ```C#
 services
   .AddPlatformIntegrationEvents<IntegrationEventProcessor>(
@@ -199,6 +233,7 @@ services
 ```
 
 Now, you can publish it in this way
+
 ```C#
 public class CommandHandler(IIntegrationEventPublisher eventPublisher) : IRequestHandler<Command>
 {
@@ -210,6 +245,7 @@ public class CommandHandler(IIntegrationEventPublisher eventPublisher) : IReques
 ```
 
 And process it in this way
+
 ```C#
 public class EventHandler : INotificationHandler<IntegrationEvent>
 {
@@ -220,20 +256,21 @@ public class EventHandler : INotificationHandler<IntegrationEvent>
 }
 ```
 
-Additional options
+Options
 
 | Option                  | Description                                                                           | Type   | Default value |
-| ----------------------- | ------------------------------------------------------------------------------------- | ------ | --------------|
+|-------------------------|---------------------------------------------------------------------------------------|--------|---------------|
 | **DashboardPath**       | Dashboard relative path                                                               | string | /admin/events |
 | **FailedRetryCount**    | The number of message retries                                                         | int    | 5             |
 | **RetentionDays**       | Success message live period                                                           | int    | 15            |
 | **SqlServer.Schema**    | Shema name for event tables                                                           | string | events        |
 | **MessageQueue.Enable** | For developer purpose only. If false, then switches RabbitMQ queue to queue in memory | string | true          |
-|                         |
 
 ## Kubernetes
 
-To use kubernetes utils, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Kubernetes):
+To use kubernetes utils, first install
+the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Kubernetes):
+
 ```shell
 dotnet add package Luxoft.Bss.Platform.Kubernetes
 ```
@@ -241,14 +278,33 @@ dotnet add package Luxoft.Bss.Platform.Kubernetes
 ### Insights
 
 To enable application insights, just register it in DI
+
 ```C#
 services
-  .AddPlatformKubernetesInsights(builder.Configuration);
+  .AddPlatformKubernetesInsights(
+      builder.Configuration,
+      opt =>
+      {
+          opt.SkipSuccessfulDependency = true;
+          opt.RoleName = Environment.GetEnvironmentVariable("APP_NAME");
+          opt.AdditionalHealthCheckPathToSkip = ["/DoHealthCheck"];
+      });
 ```
+
+All settings have default values and optional (as well as `opt` argument in `AddPlatformKubernetesInsights`):
+
+| Option                                  | Description                                                             | Type     | Default value     |
+|-----------------------------------------|-------------------------------------------------------------------------|----------|-------------------|
+| **SkipSuccessfulDependency**            | Skip dependency without error                                           | bool     | false             |
+| **SkipDefaultHealthChecks**             | Skip requests to default health checks (`/health/ready`,`/health/live`) | bool     | true              |
+| **AdditionalHealthCheckPathToSkip**     | Additional paths to skip their requests as healthchecks                 | string[] | []                |
+| **SetAuthenticatedUserFromHttpContext** | Fill AuthenticatedUserId from HttpContext.User.Identity.Name            | bool     | true              |
+| **RoleName**                            | Value to set as role name for AppInsight requests                       | string   | `<assembly name>` |
 
 ### Health Checks
 
 To add health checks for your service, you need register it in DI
+
 ```C#
 services
   .AddPlatformKubernetesHealthChecks("your db connection string");
@@ -258,18 +314,23 @@ app
 ```
 
 After that, health checks will be available by URLs
+
 - /health/live
 - /health/ready
 
 ## NHibernate
 
 ### Unit Testing
-To use the IQueryable mock, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.NHibernate.UnitTesting):
+
+To use the IQueryable mock, first install
+the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.NHibernate.UnitTesting):
+
 ```shell
 dotnet add package Luxoft.Bss.Platform.NHibernate.UnitTesting
 ```
 
 To mock IQueryable, in your code, call:
+
 ```C#
 var entity = new Entity();
 repository.GetQueryable().Returns(new TestQueryable<Entity>(entity));
@@ -277,29 +338,76 @@ repository.GetQueryable().Returns(new TestQueryable<Entity>(entity));
 
 ## Notifications
 
-To use platform senders for notifications, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Notifications):
+To use platform senders for notifications, first install
+the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Notifications):
+
 ```shell
 dotnet add package Luxoft.Bss.Platform.Notifications
 ```
 
 Then register notifications service in DI
+
 ```C#
 services
     .AddPlatformNotifications(builder.Environment, builder.Configuration)
 ```
 
 Then fill configuration settings:
+
 ```json
 {
   "NotificationSender": {
-    "Server": "smtp.server.com", -- smtp server host
-    "RedirectTo": ["test@email.com"], -- all messages on non-prod environments will be sent to these addresses, recipients will be listed in message body
-    "DefaultRecipients": ["your_support@email.com"] -- if no recipients are provided for a message then these emails will become recipients
+    "Server": "smtp.server.com",
+    --
+    smtp
+    server
+    host
+    "RedirectTo": [
+      "test@email.com"
+    ],
+    --
+    all
+    messages
+    on
+    non-prod
+    environments
+    will
+    be
+    sent
+    to
+    these
+    addresses,
+    recipients
+    will
+    be
+    listed
+    in
+    message
+    body
+    "DefaultRecipients": [
+      "your_support@email.com"
+    ]
+    --
+    if
+    no
+    recipients
+    are
+    provided
+    for
+    a
+    message
+    then
+    these
+    emails
+    will
+    become
+    recipients
   }
 }
 ```
 
 Now you can send messages to smtp server:
+
 ```C#
 public class YourNotificationRequestHandler(IEmailSender sender) : IRequestHandler<YourNotificationRequest>
 {
@@ -327,15 +435,19 @@ public class YourNotificationRequestHandler(IEmailSender sender) : IRequestHandl
 
 ### Notifications Audit
 
-To audit sent notifications, first install the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Notifications.Audit):
+To audit sent notifications, first install
+the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.Notifications.Audit):
+
 ```shell
 dotnet add package Luxoft.Bss.Platform.Notifications.Audit
 ```
 
 Then register notifications service in DI with provided sql connection
+
 ```C#
 services
     .AddPlatformNotificationsAudit(o => o.ConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")!);
 ```
 
-Thats all - db schema and tables will be generated on application start (you can customize schema and table names on DI step).
+Thats all - db schema and tables will be generated on application start (you can customize schema and table names on DI
+step).
