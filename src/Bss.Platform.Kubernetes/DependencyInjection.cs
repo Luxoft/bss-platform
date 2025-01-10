@@ -25,12 +25,17 @@ public static class DependencyInjection
             services.AddHttpContextAccessor();
         }
 
+        if (options.SkipDefaultHealthChecks || options.AdditionalHealthCheckPathToSkip.Length > 0)
+        {
+            services.AddSingleton<ITelemetryInitializer, HealthCheckSkipInitializer>();
+        }
+
         if (options.SkipSuccessfulDependency)
         {
             services.AddApplicationInsightsTelemetryProcessor<SuccessfulDependencyFilter>();
         }
 
-        services.AddSingleton<ITelemetryInitializer, BssPlatformTelemetryInitializer>();
+        services.AddSingleton<ITelemetryInitializer, TelemetryDataEnrichInitializer>();
 
         return services
             .AddApplicationInsightsTelemetry(configuration)

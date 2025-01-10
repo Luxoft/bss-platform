@@ -12,7 +12,7 @@ public record KubernetesInsightsOptions
     public bool SkipDefaultHealthChecks { get; set; } = true;
 
     /// <summary>
-    /// Register insensitive http path to skip from telemetry
+    /// Register case-insensitive http path to skip from telemetry
     /// <example> ["/DoHealthCheck"]</example>
     /// </summary>
     public string[] AdditionalHealthCheckPathToSkip { get; set; } = [];
