@@ -18,7 +18,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IWebHostEnvironment hostEnvironment,
         string title = "API",
-        Action<SwaggerGenOptions>? setupAction = null)
+        Action<SwaggerGenOptions>? setupAction = null,
+        bool enableExperimentalRequiredFeature = false)
     {
         if (hostEnvironment.IsProduction())
         {
@@ -32,6 +33,13 @@ public static class DependencyInjection
                    {
                        x.SwaggerDoc("api", new OpenApiInfo { Title = title });
                        x.SchemaFilter<XEnumNamesSchemaFilter>();
+                       
+                       if (enableExperimentalRequiredFeature)
+                       {
+                           x.SupportNonNullableReferenceTypes();
+                           x.NonNullableReferenceTypesAsRequired();
+                           x.SchemaFilter<ExcludeNullableFromRequiredSchemaFilter>();
+                       }
 
                        x.AddSecurityDefinition(
                            AuthorizationScheme,
