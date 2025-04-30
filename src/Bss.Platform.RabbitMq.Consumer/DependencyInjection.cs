@@ -56,7 +56,7 @@ public static class DependencyInjection
         where TProcessor : class, IRabbitMqEventProcessor<TEvent>
     {
         var internalBuilder = new RabbitMqBuilder<TEvent>();
-        setup(new RabbitMqBuilder<TEvent>());
+        setup(internalBuilder);
 
         return services.AddRabbitAndEvents<TProcessor, TEvent>(configuration, internalBuilder.RegisteredMessages);
     }
