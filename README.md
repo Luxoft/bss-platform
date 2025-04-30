@@ -31,7 +31,88 @@ the [NuGet package](https://www.nuget.org/packages/Luxoft.Bss.Platform.RabbitMq.
 dotnet add package Luxoft.Bss.Platform.RabbitMq.Consumer
 ```
 
-In the second step, you need implement interface IRabbitMqMessageProcessor
+then you can choose one of three ways to add the consumer:
+
+- [with event marked by attribute](#Register-event-with-attribute)
+- [with manual listed events (builder)](#Register-event-with-builder)
+- [Old way, implement IRabbitMqMessageProcessor](#Old-way-IRabbitMqMessageProcessor)
+
+#### Register event with attribute
+
+> **!IMPORTANT:**
+> `RoutingKeys` section in `RabbitMqConsumerSettings` (config) should be empty (removed), because it fills that section
+> automatically (and throw error if config has some data)
+
+this way requires implementing `IRabbitMqEventProcessor<TEvent>` interface, where `TEvent` - base type of messages
+
+```C#
+public interface IRabbitMqEventProcessor<in TEvent>
+{
+    Task ProcessAsync(TEvent @event, CancellationToken token);
+}
+```
+
+and then add:
+
+```C#
+services
+    .AddPlatformRabbitMqClient(configuration)
+    .AddPlatformRabbitMqConsumerWithMessages<RabbitMqEventProcessorImplementation, IRequest, RabbitEventAttribute>(
+            configuration,
+            x => x.RoutingKey);
+```
+
+where
+
+```C#
+public class RabbitEventAttribute(string routingKey) : Attribute
+{
+    public string RoutingKey { get; } = routingKey;
+}
+
+[RabbitEvent("RoutingKey1")]
+public record MessageOne(string Name, Guid Id): IRequest;
+```
+
+This method will find all types that has attribute `RabbitEvent` in the attribute's assembly and try to add them to
+consumer for handling corresponded routing key.
+
+> If type is not implement / inherit type `IRequest` (second generic argument of
+`AddPlatformRabbitMqConsumerWithMessages`) -
+> will throw exception (on startup)
+
+#### Register event with builder
+
+> **!IMPORTANT:**
+> `RoutingKeys` section in `RabbitMqConsumerSettings` (config) should be empty (removed), because it fills that section
+> automatically (and throw error if config has some data)
+
+this way requires implementing `IRabbitMqEventProcessor<TEvent>` interface, where `TEvent` - base type of messages
+
+```C#
+public interface IRabbitMqEventProcessor<in TEvent>
+{
+    Task ProcessAsync(TEvent @event, CancellationToken token);
+}
+```
+
+and then add:
+
+```C#
+services
+    .AddPlatformRabbitMqClient(configuration)
+    .AddPlatformRabbitMqConsumerWithMessages<RabbitMqEventProcessorImplementation, IRequest>(
+        configuration,
+        x => x
+            .Add<MessageOne>("RoutingKey1")
+            .Add<MessageTwo>("RoutingKey2"));
+```
+
+This way allows to explicitly add all required messages with routing keys to consumer.
+
+#### Old way (IRabbitMqMessageProcessor)
+
+You need implement interface IRabbitMqMessageProcessor
 
 ```C#
 public class MessageProcessor : IRabbitMqMessageProcessor
@@ -51,7 +132,11 @@ services
     .AddPlatformRabbitMqConsumer<MessageProcessor>(configuration);
 ```
 
-> [!IMPORTANT]
+> **!IMPORTANT:**
+> `RoutingKeys` section in `RabbitMqConsumerSettings` (config) should contain all routing keys that you want to consume
+> and it will be added to queue's bindings (if `RoutingKeys` is empty - adds `#` binding)
+
+> **!IMPORTANT:**
 > If you run more than one consumer, they will consume messages in parallel mode. In order to change it follow the
 > instructions below.
 
@@ -357,51 +442,9 @@ Then fill configuration settings:
 ```json
 {
   "NotificationSender": {
-    "Server": "smtp.server.com",
-    --
-    smtp
-    server
-    host
-    "RedirectTo": [
-      "test@email.com"
-    ],
-    --
-    all
-    messages
-    on
-    non-prod
-    environments
-    will
-    be
-    sent
-    to
-    these
-    addresses,
-    recipients
-    will
-    be
-    listed
-    in
-    message
-    body
-    "DefaultRecipients": [
-      "your_support@email.com"
-    ]
-    --
-    if
-    no
-    recipients
-    are
-    provided
-    for
-    a
-    message
-    then
-    these
-    emails
-    will
-    become
-    recipients
+    "Server": "smtp.server.com", // smtp server host
+    "RedirectTo": ["test@email.com"], // all messages on non-prod environments will be sent to these addresses, recipients will be listed in message body
+    "DefaultRecipients": ["your_support@email.com"] // if no recipients are provided for a message then these emails will become recipients
   }
 }
 ```
