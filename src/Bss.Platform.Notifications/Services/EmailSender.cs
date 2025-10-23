@@ -57,6 +57,11 @@ internal class EmailSender(
             AddRange(mailMessage.CC, model.Cc);
         }
 
+        if (model.Bcc?.Length > 0)
+        {
+            AddRange(mailMessage.Bcc, model.Bcc);
+        }
+
         if (model.ReplyTo?.Length > 0)
         {
             AddRange(mailMessage.ReplyToList, model.ReplyTo);

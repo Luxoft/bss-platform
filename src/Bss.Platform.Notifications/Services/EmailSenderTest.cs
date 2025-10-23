@@ -41,6 +41,7 @@ internal class EmailSenderTest(
             $"From: {message.From!.Address}<br>"
             + $"To: {string.Join("; ", message.To.Select(x => x.Address))}<br>"
             + $"CC: {string.Join("; ", message.CC.Select(x => x.Address))}<br>"
+            + $"BCC: {string.Join("; ", message.Bcc.Select(x => x.Address))}<br>"
             + $"Reply To: {string.Join("; ", message.ReplyToList.Select(x => x.Address))}<br><br>";
 
         message.Body = $"{originalRecipients}{message.Body}";
