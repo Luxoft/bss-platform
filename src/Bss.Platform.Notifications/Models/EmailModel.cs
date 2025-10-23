@@ -8,5 +8,6 @@ public record EmailModel(
     MailAddress From,
     MailAddress[] To,
     MailAddress[]? Cc = null,
+    MailAddress[]? Bcc = null,
     MailAddress[]? ReplyTo = null,
     Attachment[]? Attachments = null);
