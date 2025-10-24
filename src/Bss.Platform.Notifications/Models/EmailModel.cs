@@ -10,4 +10,5 @@ public record EmailModel(
     MailAddress[]? Cc = null,
     MailAddress[]? Bcc = null,
     MailAddress[]? ReplyTo = null,
-    Attachment[]? Attachments = null);
+    Attachment[]? Attachments = null,
+    MailPriority Priority = MailPriority.Normal);

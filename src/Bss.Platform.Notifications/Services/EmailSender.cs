@@ -36,7 +36,14 @@ internal class EmailSender(
 
     protected virtual MailMessage Convert(EmailModel model)
     {
-        var mailMessage = new MailMessage { Subject = model.Subject, Body = model.Body, From = model.From, IsBodyHtml = true };
+        var mailMessage = new MailMessage
+                          {
+                              Subject = model.Subject,
+                              Body = model.Body,
+                              From = model.From,
+                              IsBodyHtml = true,
+                              Priority = model.Priority
+                          };
 
         if (model.To.Length != 0)
         {
