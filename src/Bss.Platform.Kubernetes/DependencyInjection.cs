@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Bss.Platform.Kubernetes;
 
@@ -33,6 +34,11 @@ public static class DependencyInjection
         if (options.SkipSuccessfulDependency)
         {
             services.AddApplicationInsightsTelemetryProcessor<SuccessfulDependencyFilter>();
+        }
+
+        if (options.LogFilterRules is { Count: > 0 } rules)
+        {
+            services.AddLogMessagesToAppInsight(rules);
         }
 
         services.AddSingleton<ITelemetryInitializer, TelemetryDataEnrichInitializer>();
@@ -69,4 +75,28 @@ public static class DependencyInjection
         app
             .UseHealthChecks(Constants.LiveHealthCheck, new HealthCheckOptions { Predicate = _ => false })
             .UseHealthChecks(Constants.ReadyHealthCheck, new HealthCheckOptions { Predicate = x => readyCheckNames.Contains(x.Name) });
+
+    private static IServiceCollection AddLogMessagesToAppInsight(this IServiceCollection services, List<KubernetesInsightsOptions.LogFilterRule> rules) =>
+        services.AddLogging(x =>
+        {
+            x.AddApplicationInsights();
+            const string appInsightProvider = "Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider";
+            var loggerFilterRulesWithIndex = rules
+                .Select(r => new LoggerFilterRule(
+                            appInsightProvider,
+                            r.Category,
+                            r.Level,
+                            r.Filter == null ? null : (_, c, l) => r.Filter(c, l)))
+                .Select((value, index) => (index, value));
+
+            x.Services.Configure<LoggerFilterOptions>(o =>
+            {
+                foreach (var r in loggerFilterRulesWithIndex)
+                {
+                    // NOTE: insert with index need to have ability override settings from config (another sources):
+                    // https://github.com/microsoft/ApplicationInsights-dotnet/blob/98bc6c540e2dcccc78e4b356cd70e03d146a01ad/NETCORE/src/Shared/Extensions/ApplicationInsightsExtensions.cs#L398
+                    o.Rules.Insert(r.index, r.value);
+                }
+            });
+        });
 }
