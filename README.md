@@ -389,10 +389,10 @@ All settings have default values and optional (as well as `opt` argument in `Add
 | **RoleName**                            | Value to set as role name for AppInsight requests                       | string   | `<assembly name>` |
 
  Also the options have two methods to add logger messages as traces to requests:
- * `AddLogMessages(LogLevel level = LogLevel.Information)` - adds all log messages with the passed level or high
+ * `AddLogMessages(LogLevel level = LogLevel.Information)` - adds all log messages with the passed level or higher
  * `AddLogMessages(string? category, LogLevel? level = null, Func<string?, LogLevel?, bool>? filter = null)` - for custom rules for different categories (you can choose which logs you want to add)
 
-The rule order is important, the last one is the [has the highest](https://github.com/microsoft/ApplicationInsights-dotnet/blob/98bc6c540e2dcccc78e4b356cd70e03d146a01ad/NETCORE/src/Shared/Extensions/ApplicationInsightsExtensions.cs#L398) priority 
+The rule order is important, the last one has the highest priority ([source](https://github.com/microsoft/ApplicationInsights-dotnet/blob/98bc6c540e2dcccc78e4b356cd70e03d146a01ad/NETCORE/src/Shared/Extensions/ApplicationInsightsExtensions.cs#L398))
 
 ### Health Checks
 
