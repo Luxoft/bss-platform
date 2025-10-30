@@ -2,6 +2,9 @@
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
 
+        <RepositoryUrl>https://github.com/Luxoft/bss-platform</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
