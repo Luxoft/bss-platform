@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageId>Luxoft.Bss.Platform.RabbitMq.JsonSchemaGenerator</PackageId>
+        <RootNamespace>Bss.Platform.RabbitMq.JsonSchemaGenerator</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
+        <PackageReference Include="NJsonSchema" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Bss.Platform.RabbitMq.Consumer\Bss.Platform.RabbitMq.Consumer.csproj" />
+    </ItemGroup>
+</Project>
