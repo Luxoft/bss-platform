@@ -1,9 +1,20 @@
-﻿<Project>
+<Project>
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
 
+        <RepositoryUrl>https://github.com/Luxoft/bss-platform</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+
+        <!-- Include PDB into DLL -->
+        <DebugType>embedded</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <!-- Include all sources into PDB -->
+        <EmbedAllSources>true</EmbedAllSources>
+        <!-- All PDB already embedded and no separate symbols package (.snupkg) needed-->
+        <IncludeSymbols>false</IncludeSymbols>
 
         <OutputPath>bin</OutputPath>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
