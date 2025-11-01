@@ -9,6 +9,7 @@
     <PackageVersion Include="DotNetCore.CAP.RabbitMQ" Version="8.2.0" />
     <PackageVersion Include="DotNetCore.CAP.SqlServer" Version="8.2.0" />
     <PackageVersion Include="Microsoft.SqlServer.SqlManagementObjects" Version="172.52.0" />
+    <PackageVersion Include="NJsonSchema" Version="11.5.1" />
     <PackageVersion Include="Savorboard.CAP.InMemoryMessageQueue" Version="8.2.1" />
     <PackageVersion Include="MediatR" Version="12.4.1" />
     <PackageVersion Include="Microsoft.ApplicationInsights" Version="2.22.0" />
