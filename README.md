@@ -9,7 +9,7 @@ This repository offers a wide collection of .NET packages for use in microservic
 # Sections
 
 - [RabbitMQ Consumer](#Consumer)
-- [JsonSchema generator for Rabbit events](#json-schema-generator-for-rabbit-events)
+- [JsonSchema generator for Rabbit events](#jsonschema-generator-for-rabbit-events)
 - [Logging](#Logging)
 - [API Middlewares](#Middlewares)
 - [API Documentation](#Documentation)
