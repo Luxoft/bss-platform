@@ -165,7 +165,7 @@ services
 Allow to generate json schema for consuming and producing types,
 based on [NJsonSchema](https://github.com/RicoSuter/NJsonSchema)
 
-To use just add a new middleware via the extension:
+To use just install the [Luxoft.Bss.Platform.RabbitMq.JsonSchemaGenerator](https://www.nuget.org/packages/Luxoft.Bss.Platform.RabbitMq.JsonSchemaGenerator) package and add a new middleware via the extension:
 ```C#
 if (app.Environment.IsDevelopment())
 {
