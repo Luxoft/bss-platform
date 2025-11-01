@@ -172,7 +172,7 @@ if (app.Environment.IsDevelopment())
        app.UseRabbitJsonSchemaGenerator(opt =>
        {
               opt.Path = "/api/rabbit-json-schema";
-              opt.TypePrefix = "TSS";
+              opt.TypePrefix = "TSS.";
               opt.ProducedEventTypes = typeof(IEvent).Assembly.GetTypes()
                      .Where(x => x.IsPublic && !x.IsAbstract && !x.IsInterface)
                      .Where(x => x.GetInterfaces().Contains(typeof(IEvent)));
