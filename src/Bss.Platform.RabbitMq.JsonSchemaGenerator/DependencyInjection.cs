@@ -12,27 +12,18 @@ public static class DependencyInjection
         var options = new GenerateSchemaOptions();
         setup?.Invoke(options);
 
-        var consumedEventMappingFn = options.ManualRegisteredConsumedEventsFn ?? (() => []);
-        if (options.ExportConsumingTypes)
-        {
-            consumedEventMappingFn = () =>
-            {
-                var manualPassedMessages = options.ManualRegisteredConsumedEventsFn?.Invoke() ?? [];
-                var autoRegisteredMessages = app.ApplicationServices
-                    .GetKeyedService<Dictionary<string, Type>>(Consumer.DependencyInjection.RoutingMessageProviderKey) ?? [];
+        var consumedEvents =
+            app.ApplicationServices
+                .GetKeyedService<Dictionary<string, Type>>(Consumer.DependencyInjection.RoutingMessageProviderKey)
+                ?.Select(x => (x.Key, x.Value))
+            ?? [];
 
-                return manualPassedMessages
-                    .Concat(autoRegisteredMessages.Select(x => (x.Key, x.Value)))
-                    .DistinctBy(x => x.Item1, StringComparer.OrdinalIgnoreCase);
-            };
-        }
+        var producedEvents = options.ProducedEventTypes.Select(x => ($"{options.TypePrefix}{x.Name}", x));
 
-        var producedEventMappingFn = options.OutputEventMappingFn ?? (() => []);
-        if (options.ProducedEventTypes != null && options.OutputEventMappingFn == null)
-        {
-            producedEventMappingFn = () => options.ProducedEventTypes.Invoke().Select(x => ($"{options.TypePrefix}{x.Name}", x));
-        }
+        var allEventsDict = producedEvents.Concat(consumedEvents)
+            .DistinctBy(x => x.Item1, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Item1, x => x.Item2);
 
-        return app.UseMiddleware<GenerateSchemaMiddleware>(options.Path, consumedEventMappingFn, producedEventMappingFn);
+        return app.UseMiddleware<GenerateSchemaMiddleware>(options.Path, allEventsDict);
     }
 }
