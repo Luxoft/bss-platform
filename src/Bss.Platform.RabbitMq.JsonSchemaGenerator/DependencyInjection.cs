@@ -18,7 +18,7 @@ public static class DependencyInjection
                 ?.Select(x => (x.Key, x.Value))
             ?? [];
 
-        var producedEvents = options.ProducedEventTypes.Select(x => ($"{options.TypePrefix}{x.Name}", x));
+        var producedEvents = options.ProducedEventTypes.Select(x => ($"{options.SystemPrefix}{x.Name}", x));
 
         var allEventsDict = producedEvents.Concat(consumedEvents)
             .DistinctBy(x => x.Item1, StringComparer.OrdinalIgnoreCase)

@@ -13,5 +13,5 @@ public class GenerateSchemaOptions
     /// <summary>
     ///     Prefix to add to produced event type
     /// </summary>
-    public string TypePrefix { get; set; } = string.Empty;
+    public string SystemPrefix { get; set; } = string.Empty;
 }

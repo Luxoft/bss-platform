@@ -174,14 +174,17 @@ if (app.Environment.IsDevelopment())
        app.UseRabbitJsonSchemaGenerator(opt =>
        {
               opt.Path = "/api/rabbit-json-schema";
-              opt.TypePrefix = "TSS.";
+              opt.SystemPrefix = "TSS.";
               opt.ProducedEventTypes = typeof(IEvent).Assembly.GetTypes()
                      .Where(x => x.IsPublic && !x.IsAbstract && !x.IsInterface)
                      .Where(x => x.GetInterfaces().Contains(typeof(IEvent)));
        });
 }
 ```
-`TypePrefix` and `ProducedEventTypes` are required only for produced events<br>
+The next two options are required only for produced events:
+- `SystemPrefix` - the prefix added to the produced type names (`SaveEmployee` -> `TSS.SaveEmployee`) when exporting types in the schema
+- `ProducedEventTypes` - collection of all produced types, that need to be exported in the schema 
+
 Consumed events are automatically added if you use the new way to register consumer with
 method [AddPlatformRabbitMqConsumerWithMessages](#Register-event-with-builder)
 
