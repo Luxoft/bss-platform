@@ -9,6 +9,7 @@ This repository offers a wide collection of .NET packages for use in microservic
 # Sections
 
 - [RabbitMQ Consumer](#Consumer)
+- [JsonSchema generator for Rabbit events](#jsonschema-generator-for-rabbit-events)
 - [Logging](#Logging)
 - [API Middlewares](#Middlewares)
 - [API Documentation](#Documentation)
@@ -158,6 +159,42 @@ Register the consumer lock service in DI
 services
     .AddPlatformRabbitMqSqlServerConsumerLock(configuration.GetConnectionString("ms sql connection string"));
 ```
+
+### JsonSchema Generator for Rabbit events
+
+Allow to generate json schema for consuming and producing types,
+based on [NJsonSchema](https://github.com/RicoSuter/NJsonSchema)
+
+To use just install
+[Luxoft.Bss.Platform.RabbitMq.JsonSchemaGenerator](https://www.nuget.org/packages/Luxoft.Bss.Platform.RabbitMq.JsonSchemaGenerator)
+package and add a new middleware via the extension:
+```C#
+if (app.Environment.IsDevelopment())
+{
+       app.UseRabbitJsonSchemaGenerator(opt =>
+       {
+              opt.Path = "/api/rabbit-json-schema";
+              opt.SystemPrefix = "TSS.";
+              opt.ProducedEventTypes = typeof(IEvent).Assembly.GetTypes()
+                     .Where(x => x.IsPublic && !x.IsAbstract && !x.IsInterface)
+                     .Where(x => x.GetInterfaces().Contains(typeof(IEvent)));
+       });
+}
+```
+The next two options are required only for produced events:
+- `SystemPrefix` - the prefix added to the produced type names (`SaveEmployee` -> `TSS.SaveEmployee`) when exporting types in the schema
+- `ProducedEventTypes` - collection of all produced types, that need to be exported in the schema 
+
+Consumed events are automatically added if you use the new way to register consumer with
+method [AddPlatformRabbitMqConsumerWithMessages](#Register-event-with-builder)
+
+For more complex cases please use middleware without extensions:
+```C#
+app.UseMiddleware<GenerateSchemaMiddleware>("/api/rabbit-json-schema", allEventsDict);
+```
+where `Dictionary<string, Type> allEventsDict` contains the mapping between routing keys
+and types (for both types - consumed and produced)
+
 
 ## Logging
 
