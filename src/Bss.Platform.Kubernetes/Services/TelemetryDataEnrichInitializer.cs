@@ -1,9 +1,6 @@
-﻿using System.Reflection;
-
 using Microsoft.ApplicationInsights.AspNetCore.TelemetryInitializers;
 using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.DataContracts;
-using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
@@ -18,11 +15,6 @@ internal class TelemetryDataEnrichInitializer(IHttpContextAccessor accessor, IOp
             && platformContext.User.Identity?.Name is { Length: > 0 } username)
         {
             telemetry.Context.User.AuthenticatedUserId = username;
-        }
-
-        if (string.IsNullOrEmpty(telemetry.Context.Cloud.RoleName))
-        {
-            telemetry.Context.Cloud.RoleName = options.Value.RoleName;
         }
     }
 }
