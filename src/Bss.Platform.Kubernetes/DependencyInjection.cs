@@ -1,4 +1,4 @@
-﻿using Bss.Platform.Kubernetes.Services;
+using Bss.Platform.Kubernetes.Services;
 
 using Microsoft.ApplicationInsights.DependencyCollector;
 using Microsoft.ApplicationInsights.Extensibility;
@@ -36,6 +36,7 @@ public static class DependencyInjection
         }
 
         services.AddSingleton<ITelemetryInitializer, TelemetryDataEnrichInitializer>();
+        services.AddSingleton<ITelemetryInitializer, CloudRoleNameTelemetryInitializer>();
 
         return services
             .AddApplicationInsightsTelemetry(configuration)
