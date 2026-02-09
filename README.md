@@ -20,6 +20,7 @@ This repository offers a wide collection of .NET packages for use in microservic
 - [NHibernate](#NHibernate)
 - [Notifications](#Notifications)
 - [Notifications Audit](#Notifications-Audit)
+- [Mediation](#Custom-Mediation)
 
 ## RabbitMQ
 
@@ -531,3 +532,37 @@ services
 
 Thats all - db schema and tables will be generated on application start (you can customize schema and table names on DI
 step).
+
+# Custom Mediation
+
+## Purpose
+A small in-process mediator. Replaces MediatR-style usage with a minimal API surface.
+
+Exposed types:
+- `IMediator`
+- `IRequest<TResponse>`
+- `IRequestHandler<TRequest, TResponse>`
+- `IPipelineBehavior<TRequest, TResponse>`
+- One DI entry point: `AddMediation(...)`
+
+Goal: presentation layer only does `await mediator.Send(request)` and never touches application logic.
+## DI registration
+
+### Add mediation once (composition root)
+Call `AddMediation` . Pass assemblies that contain handlers and pipeline behaviors.
+
+```C#
+builder.Services.AddMediation(typeof(DependencyInjection).Assembly);
+```
+### Pipeline behaviors
+
+Register pipeline behaviors as open generics. Order matters.
+
+```C#
+// Outer → inner
+builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ExceptionMappingBehavior<,>));
+builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
+```
+~~~~
