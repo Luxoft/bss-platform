@@ -8,6 +8,7 @@
     <PackageVersion Include="DotNetCore.CAP.Dashboard" Version="8.2.0" />
     <PackageVersion Include="DotNetCore.CAP.RabbitMQ" Version="8.2.0" />
     <PackageVersion Include="DotNetCore.CAP.SqlServer" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.12" />
     <PackageVersion Include="Microsoft.SqlServer.SqlManagementObjects" Version="172.52.0" />
     <PackageVersion Include="NJsonSchema" Version="11.5.1" />
     <PackageVersion Include="Savorboard.CAP.InMemoryMessageQueue" Version="8.2.1" />
@@ -24,6 +25,7 @@
     <PackageVersion Include="NHibernate" Version="5.5.2" />
     <PackageVersion Include="RabbitMQ.Client" Version="6.8.1" />
     <PackageVersion Include="Polly" Version="8.5.0" />
+    <PackageVersion Include="Scrutor" Version="7.0.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
   </ItemGroup>
