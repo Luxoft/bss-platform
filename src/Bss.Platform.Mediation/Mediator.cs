@@ -10,13 +10,10 @@ public record Mediator(IServiceProvider ServiceProvider) : IMediator
         where TRequest : IRequest<TResult>
     {
         var handler = this.ServiceProvider.GetRequiredService<IRequestHandler<TRequest, TResult>>();
-        var behaviors = this.ServiceProvider
-                            .GetServices<IPipelineBehavior<TRequest, TResult>>()
-                            .Reverse()
-                            .ToArray();
+        var behaviors = this.GetBehaviors<IPipelineBehavior<TRequest, TResult>>();
 
-        Func<TRequest, CancellationToken, Task<TResult>> next = (r, ct)
-                                                                    => handler.Handle(r, ct);
+        Func<TRequest, CancellationToken, Task<TResult>> next =
+            (r, ct) => handler.Handle(r, ct);
         foreach (var behavior in behaviors)
         {
             var prev = next;
@@ -25,4 +22,26 @@ public record Mediator(IServiceProvider ServiceProvider) : IMediator
 
         return next(request, cancellationToken);
     }
+
+    public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
+        where TRequest : IRequest
+    {
+        var handler = this.ServiceProvider.GetRequiredService<IRequestHandler<TRequest>>();
+        var behaviors = this.GetBehaviors<IPipelineBehavior<TRequest>>();
+
+        Func<TRequest, CancellationToken, Task> next = (r, ct) => handler.Handle(r, ct);
+        foreach (var behavior in behaviors)
+        {
+            var prev = next;
+            next = (r, ct) => behavior.Handle(r, ct, prev);
+        }
+
+        return next(request, cancellationToken);
+    }
+
+    private TInterface[] GetBehaviors<TInterface>() =>
+        this.ServiceProvider
+            .GetServices<TInterface>()
+            .Reverse()
+            .ToArray();
 }
