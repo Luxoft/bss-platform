@@ -3,12 +3,13 @@
         <PackageId>Luxoft.Bss.Platform.Events</PackageId>
     </PropertyGroup>
     <ItemGroup>
-      <ProjectReference Include="..\Bss.Platform.Events.Abstractions\Bss.Platform.Events.Abstractions.csproj" />
+        <ProjectReference Include="..\Bss.Platform.Events.Abstractions\Bss.Platform.Events.Abstractions.csproj"/>
+        <ProjectReference Include="..\Bss.Platform.Mediation.Abstractions\Bss.Platform.Mediation.Abstractions.csproj"/>
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="DotNetCore.CAP.Dashboard" />
-      <PackageReference Include="DotNetCore.CAP.RabbitMQ" />
-      <PackageReference Include="DotNetCore.CAP.SqlServer" />
-      <PackageReference Include="Savorboard.CAP.InMemoryMessageQueue" />
+        <PackageReference Include="DotNetCore.CAP.Dashboard"/>
+        <PackageReference Include="DotNetCore.CAP.RabbitMQ"/>
+        <PackageReference Include="DotNetCore.CAP.SqlServer"/>
+        <PackageReference Include="Savorboard.CAP.InMemoryMessageQueue"/>
     </ItemGroup>
 </Project>

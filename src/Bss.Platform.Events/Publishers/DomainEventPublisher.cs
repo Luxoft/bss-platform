@@ -1,6 +1,5 @@
 using Bss.Platform.Events.Abstractions;
-
-using MediatR;
+using Bss.Platform.Mediation.Abstractions;
 
 namespace Bss.Platform.Events.Publishers;
 

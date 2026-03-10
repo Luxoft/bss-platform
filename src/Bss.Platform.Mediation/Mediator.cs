@@ -39,6 +39,17 @@ public record Mediator(IServiceProvider ServiceProvider) : IMediator
         return next(request, cancellationToken);
     }
 
+    public async Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+        where TNotification : INotification
+    {
+        var handlers = this.ServiceProvider.GetServices<INotificationHandler<TNotification>>();
+
+        foreach (var handler in handlers)
+        {
+            await handler.Handle(notification, cancellationToken);
+        }
+    }
+
     private TInterface[] GetBehaviors<TInterface>() =>
         this.ServiceProvider
             .GetServices<TInterface>()

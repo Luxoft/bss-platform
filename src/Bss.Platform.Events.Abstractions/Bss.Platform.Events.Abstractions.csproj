@@ -3,6 +3,6 @@
         <PackageId>Luxoft.Bss.Platform.Events.Abstractions</PackageId>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="MediatR"/>
+        <ProjectReference Include="..\Bss.Platform.Mediation.Abstractions\Bss.Platform.Mediation.Abstractions.csproj"/>
     </ItemGroup>
 </Project>
