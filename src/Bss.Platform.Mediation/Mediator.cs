@@ -1,58 +1,38 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
 using Bss.Platform.Mediation.Abstractions;
+using Bss.Platform.Mediation.Wrappers;
 
 namespace Bss.Platform.Mediation;
 
-public record Mediator(IServiceProvider ServiceProvider) : IMediator
+public sealed class Mediator(IServiceProvider serviceProvider) : IMediator
 {
-    public Task<TResult> Send<TRequest, TResult>(TRequest request, CancellationToken cancellationToken = default)
-        where TRequest : IRequest<TResult>
+    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)
     {
-        var handler = this.ServiceProvider.GetRequiredService<IRequestHandler<TRequest, TResult>>();
-        var behaviors = this.GetBehaviors<IPipelineBehavior<TRequest, TResult>>();
+        var requestType = request.GetType();
+        var wrapperType = typeof(RequestHandlerWrapperImpl<,>).MakeGenericType(requestType, typeof(TResponse));
+        var wrapper = (RequestHandlerWrapper<TResponse>)(Activator.CreateInstance(wrapperType)
+                      ?? throw new InvalidOperationException($"Could not create wrapper for {requestType}"));
 
-        Func<TRequest, CancellationToken, Task<TResult>> next =
-            (r, ct) => handler.Handle(r, ct);
-        foreach (var behavior in behaviors)
-        {
-            var prev = next;
-            next = (r, ct) => behavior.Handle(r, ct, prev);
-        }
-
-        return next(request, cancellationToken);
+        return wrapper.Handle(request, serviceProvider, cancellationToken);
     }
 
-    public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-        where TRequest : IRequest
+    public Task Send(IRequest request, CancellationToken cancellationToken)
     {
-        var handler = this.ServiceProvider.GetRequiredService<IRequestHandler<TRequest>>();
-        var behaviors = this.GetBehaviors<IPipelineBehavior<TRequest>>();
+        var requestType = request.GetType();
+        var wrapperType = typeof(VoidRequestHandlerWrapperImpl<>).MakeGenericType(requestType);
+        var wrapper = (VoidRequestHandlerWrapper)(Activator.CreateInstance(wrapperType)
+                      ?? throw new InvalidOperationException($"Could not create wrapper for {requestType}"));
 
-        Func<TRequest, CancellationToken, Task> next = (r, ct) => handler.Handle(r, ct);
-        foreach (var behavior in behaviors)
-        {
-            var prev = next;
-            next = (r, ct) => behavior.Handle(r, ct, prev);
-        }
-
-        return next(request, cancellationToken);
+        return wrapper.Handle(request, serviceProvider, cancellationToken);
     }
 
-    public async Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+    public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken)
         where TNotification : INotification
     {
-        var handlers = this.ServiceProvider.GetServices<INotificationHandler<TNotification>>();
+        var notificationType = notification.GetType();
+        var wrapperType = typeof(NotificationHandlerWrapperImpl<>).MakeGenericType(notificationType);
+        var wrapper = (NotificationHandlerWrapper)(Activator.CreateInstance(wrapperType)
+                      ?? throw new InvalidOperationException($"Could not create notification wrapper for {notificationType}"));
 
-        foreach (var handler in handlers)
-        {
-            await handler.Handle(notification, cancellationToken);
-        }
+        return wrapper.Handle(notification, serviceProvider, cancellationToken);
     }
-
-    private TInterface[] GetBehaviors<TInterface>() =>
-        this.ServiceProvider
-            .GetServices<TInterface>()
-            .Reverse()
-            .ToArray();
 }
