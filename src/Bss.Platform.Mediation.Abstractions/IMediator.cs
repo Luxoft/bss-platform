@@ -1,13 +1,11 @@
-﻿namespace Bss.Platform.Mediation.Abstractions;
+namespace Bss.Platform.Mediation.Abstractions;
 
 public interface IMediator
 {
-    Task<TResult> Send<TRequest, TResult>(TRequest request, CancellationToken cancellationToken = default)
-        where TRequest : IRequest<TResult>;
+    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken);
 
-    Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-        where TRequest : IRequest;
+    public Task Send(IRequest request, CancellationToken cancellationToken);
 
-    Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+    public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken)
         where TNotification : INotification;
 }

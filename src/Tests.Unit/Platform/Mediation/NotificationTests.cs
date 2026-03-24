@@ -52,7 +52,7 @@ public class NotificationTests
         var mediator = provider.GetRequiredService<IMediator>();
 
         // Act
-        await mediator.Publish(new AlertNotification());
+        await mediator.Publish(new AlertNotification(), CancellationToken.None);
 
         // Assert
         this.executionLog.Should().Contain("Handler1");

@@ -1,17 +1,11 @@
-﻿namespace Bss.Platform.Mediation.Abstractions;
+namespace Bss.Platform.Mediation.Abstractions;
 
-public interface IPipelineBehavior<TRequest, TResult>
+public interface IPipelineBehavior<in TRequest, TResult>
 {
-    Task<TResult> Handle(
-        TRequest request,
-        CancellationToken ct,
-        Func<TRequest, CancellationToken, Task<TResult>> next);
+    public Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken cancellationToken);
 }
 
-public interface IPipelineBehavior<TRequest>
+public interface IPipelineBehavior<in TRequest>
 {
-    Task Handle(
-        TRequest request,
-        CancellationToken ct,
-        Func<TRequest, CancellationToken, Task> next);
+    public Task Handle(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken);
 }

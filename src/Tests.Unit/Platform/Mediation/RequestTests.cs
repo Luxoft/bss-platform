@@ -34,10 +34,10 @@ public class RequestTests
 
     public class LoggingBehavior<TRequest, TResult>(List<string> log) : IPipelineBehavior<TRequest, TResult>
     {
-        public async Task<TResult> Handle(TRequest request, CancellationToken ct, Func<TRequest, CancellationToken, Task<TResult>> next)
+        public async Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken cancellationToken)
         {
             log.Add("Behavior Pre");
-            var result = await next(request, ct);
+            var result = await next();
             log.Add("Behavior Post");
             return result;
         }
@@ -56,10 +56,10 @@ public class RequestTests
 
     public class LoggingVoidBehavior<TRequest>(List<string> log) : IPipelineBehavior<TRequest>
     {
-        public async Task Handle(TRequest request, CancellationToken ct, Func<TRequest, CancellationToken, Task> next)
+        public async Task Handle(TRequest request, RequestHandlerDelegate next, CancellationToken cancellationToken)
         {
             log.Add("VoidBehavior Pre");
-            await next(request, ct);
+            await next();
             log.Add("VoidBehavior Post");
         }
     }
@@ -75,7 +75,7 @@ public class RequestTests
         var mediator = provider.GetRequiredService<IMediator>();
 
         // Act
-        var result = await mediator.Send<PingRequest, string>(new PingRequest("World"));
+        var result = await mediator.Send(new PingRequest("World"), CancellationToken.None);
 
         // Assert
         result.Should().Be("Hello World");
@@ -98,7 +98,7 @@ public class RequestTests
         var mediator = provider.GetRequiredService<IMediator>();
 
         // Act
-        await mediator.Send(new VoidRequest());
+        await mediator.Send(new VoidRequest(), CancellationToken.None);
 
         // Assert
         this.executionLog.Should()
