@@ -5,7 +5,7 @@ namespace Bss.Platform.Mediation;
 
 public sealed class Mediator(IServiceProvider serviceProvider) : IMediator
 {
-    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)
+    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
         var requestType = request.GetType();
         var wrapperType = typeof(RequestHandlerWrapperImpl<,>).MakeGenericType(requestType, typeof(TResponse));
@@ -15,7 +15,7 @@ public sealed class Mediator(IServiceProvider serviceProvider) : IMediator
         return wrapper.Handle(request, serviceProvider, cancellationToken);
     }
 
-    public Task Send(IRequest request, CancellationToken cancellationToken)
+    public Task Send(IRequest request, CancellationToken cancellationToken = default)
     {
         var requestType = request.GetType();
         var wrapperType = typeof(VoidRequestHandlerWrapperImpl<>).MakeGenericType(requestType);
@@ -25,7 +25,7 @@ public sealed class Mediator(IServiceProvider serviceProvider) : IMediator
         return wrapper.Handle(request, serviceProvider, cancellationToken);
     }
 
-    public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken)
+    public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken  = default)
         where TNotification : INotification
     {
         var notificationType = notification.GetType();
