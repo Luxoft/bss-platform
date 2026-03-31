@@ -9,6 +9,8 @@ using Bss.Platform.Events.Publishers;
 using DotNetCore.CAP;
 using DotNetCore.CAP.Internal;
 
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 
 using Savorboard.CAP.InMemoryMessageQueue;
@@ -53,7 +55,15 @@ public static class DependencyInjection
                             o.Schema = eventsOptions.SqlServer.Schema;
                         });
 
-                    x.UseDashboard(o => o.PathMatch = eventsOptions.DashboardPath);
+                    x.UseDashboard(o =>
+                    {
+                        o.PathMatch = eventsOptions.DashboardPath;
+                        if (eventsOptions.AuthorizationPredicate is { } authPredicate)
+                        {
+                            o.AllowAnonymousExplicit = false;
+                            o.AuthorizationPolicy = AddDashboardAuthorizationPolicy(services, authPredicate);
+                        }
+                    });
 
                     if (!eventsOptions.MessageQueue.Enable)
                     {
@@ -76,5 +86,23 @@ public static class DependencyInjection
                 });
 
         return services;
+    }
+
+    private static string AddDashboardAuthorizationPolicy(IServiceCollection services, Func<HttpContext, Task<bool>> authPredicate)
+    {
+        const string policyName = "bss-platform-dashboard-auth";
+        services.AddAuthorizationBuilder()
+            .AddPolicy(
+                policyName,
+                policy => policy.RequireAssertion(ctx =>
+                {
+                    var httpContext = ctx.Resource as HttpContext
+                                      ?? (ctx.Resource as AuthorizationFilterContext)?.HttpContext
+                                      ?? throw new("Can't authorize, http context is not available");
+
+                    return authPredicate(httpContext);
+                }));
+
+        return policyName;
     }
 }
