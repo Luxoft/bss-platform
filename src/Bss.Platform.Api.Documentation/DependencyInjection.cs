@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -76,7 +77,14 @@ public static class DependencyInjection
                    x =>
                    {
                        x.RoutePrefix = path;
-                       x.SwaggerEndpoint($"/{path}/api/swagger.json", "api");
+                       var opts = app.ApplicationServices.GetRequiredService<IOptions<SwaggerGenOptions>>()
+                           .Value
+                           .SwaggerGeneratorOptions.SwaggerDocs;
+
+                       foreach (var doc in opts)
+                       {
+                           x.SwaggerEndpoint($"/{path}/{doc.Key}/swagger.json", doc.Value.Title ?? doc.Key);
+                       }
                    });
     }
 }
