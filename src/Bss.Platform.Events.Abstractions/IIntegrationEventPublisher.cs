@@ -2,5 +2,5 @@ namespace Bss.Platform.Events.Abstractions;
 
 public interface IIntegrationEventPublisher
 {
-    Task PublishAsync(IIntegrationEvent @event, CancellationToken cancellationToken);
+    Task PublishAsync(object @event, CancellationToken cancellationToken);
 }
