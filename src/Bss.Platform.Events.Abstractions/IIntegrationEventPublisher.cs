@@ -1,6 +1,8 @@
 namespace Bss.Platform.Events.Abstractions;
 
-public interface IIntegrationEventPublisher
+public interface IIntegrationEventPublisher<in T>
 {
-    Task PublishAsync(object @event, CancellationToken cancellationToken);
+    Task PublishAsync(T @event, CancellationToken cancellationToken);
 }
+
+public interface IIntegrationEventPublisher : IIntegrationEventPublisher<IIntegrationEvent>;
