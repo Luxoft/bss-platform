@@ -6,20 +6,21 @@ using DotNetCore.CAP;
 namespace Bss.Platform.Events.Publishers;
 
 public class IntegrationEventPublisherLegacy(ICapPublisher capPublisher, ICapTransaction capTransaction)
-    : IntegrationEventPublisherBase(capPublisher, capTransaction)
+    : IntegrationEventPublisherBase<IIntegrationEvent>(capPublisher, capTransaction), IIntegrationEventPublisher
 {
     private readonly ICapPublisher capPublisher = capPublisher;
 
-    protected override Task PublishInternalAsync(object @event, CancellationToken cancellationToken) =>
+    protected override Task PublishInternalAsync(IIntegrationEvent @event, CancellationToken cancellationToken) =>
         this.capPublisher.PublishAsync(@event.GetType().Name, @event, cancellationToken: cancellationToken);
 }
 
-public class IntegrationEventPublisherNew(ICapPublisher capPublisher, ICapTransaction capTransaction, IEventTypeProvider eventTypeProvider)
-    : IntegrationEventPublisherBase(capPublisher, capTransaction)
+public class IntegrationEventPublisherNew<T>(ICapPublisher capPublisher, ICapTransaction capTransaction, IEventTypeProvider eventTypeProvider)
+    : IntegrationEventPublisherBase<T>(capPublisher, capTransaction)
+    where T: notnull
 {
     private readonly ICapPublisher capPublisher = capPublisher;
 
-    protected override async Task PublishInternalAsync(object @event, CancellationToken cancellationToken)
+    protected override async Task PublishInternalAsync(T @event, CancellationToken cancellationToken)
     {
         if (eventTypeProvider.InternalEvents.TryGetValue(@event.GetType(), out var internalRoutingKey))
         {
@@ -39,9 +40,10 @@ public class IntegrationEventPublisherNew(ICapPublisher capPublisher, ICapTransa
     }
 }
 
-public abstract class IntegrationEventPublisherBase(ICapPublisher capPublisher, ICapTransaction capTransaction) : IIntegrationEventPublisher
+public abstract class IntegrationEventPublisherBase<T>(ICapPublisher capPublisher, ICapTransaction capTransaction)
+    : IIntegrationEventPublisher<T>
 {
-    public Task PublishAsync(object @event, CancellationToken cancellationToken)
+    public Task PublishAsync(T @event, CancellationToken cancellationToken)
     {
         if (capPublisher.Transaction is not null && capPublisher.Transaction != capTransaction)
         {
@@ -52,5 +54,5 @@ public abstract class IntegrationEventPublisherBase(ICapPublisher capPublisher, 
         return this.PublishInternalAsync(@event, cancellationToken);
     }
 
-    protected abstract Task PublishInternalAsync(object @event, CancellationToken cancellationToken);
+    protected abstract Task PublishInternalAsync(T @event, CancellationToken cancellationToken);
 }

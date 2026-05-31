@@ -38,19 +38,24 @@ public static class DependencyInjection
         return services;
     }
 
-    public static IServiceCollection AddPlatformIntegrationEvents<TEventProcessor, TInternalEvent>(
+    /// <summary>
+    /// A new way to register integration events, required to set up internal and external events
+    /// </summary>
+    /// <returns>Automatically registered IIntegrationEventPublisher&lt;TEvent&gt; wrap it if you need</returns>
+    public static IServiceCollection AddPlatformIntegrationEvents<TEventProcessor, TEvent>(
         this IServiceCollection services,
-        Action<IntegrationEventsOptions>? setupOptions = null,
-        Action<IIntegrationEventSetup<TInternalEvent>>? setupEvents = null)
-        where TEventProcessor : class, IIntegrationEventProcessor<TInternalEvent>
+        Action<IIntegrationEventSetup<TEvent>> setupEvents,
+        Action<IntegrationEventsOptions>? setupOptions = null)
+        where TEventProcessor : class, IIntegrationEventProcessor<TEvent>
+        where TEvent : notnull
     {
-        var typeProvider = new EventTypeProvider<TInternalEvent>(typeof(TInternalEvent).Assembly);
-        setupEvents?.Invoke(typeProvider);
+        var typeProvider = new EventTypeProvider<TEvent>();
+        setupEvents.Invoke(typeProvider);
 
         services
             .AddSingleton<IEventTypeProvider>(typeProvider)
             .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelectorNew>()
-            .AddScoped<IIntegrationEventPublisher, IntegrationEventPublisherNew>()
+            .AddScoped<IIntegrationEventPublisher<TEvent>, IntegrationEventPublisherNew<TEvent>>()
             .AddPlatformIntegrationEventsInternal(setupOptions)
             .Configure((RabbitMQOptions opt) =>
             {
@@ -59,16 +64,16 @@ public static class DependencyInjection
                 [
                     new(Headers.MessageId, sp.GetRequiredService<ISnowflakeId>().NextId().ToString()),
                     new(Headers.MessageName, msg.RoutingKey),
-                    new(Headers.Type, typeof(TInternalEvent).Name)
+                    new(Headers.Type, typeof(TEvent).Name)
                 ];
             });
 
-        services.AddSingleton<IIntegrationEventProcessor<TInternalEvent>, TEventProcessor>();
+        services.AddSingleton<IIntegrationEventProcessor<TEvent>, TEventProcessor>();
         // NOTE: register TEventProcessor for each type (required for CapConsumerExecutor<TEvent>)
         typeProvider.InternalEvents.Keys
             .Select(t => typeof(IIntegrationEventProcessor<>).MakeGenericType(t))
             .ToList()
-            .ForEach(x => services.AddSingleton(x, sp => sp.GetRequiredService<IIntegrationEventProcessor<TInternalEvent>>()));
+            .ForEach(x => services.AddSingleton(x, sp => sp.GetRequiredService<IIntegrationEventProcessor<TEvent>>()));
 
         return services;
     }

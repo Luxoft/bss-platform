@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 
+using Bss.Platform.Events.Abstractions;
 using Bss.Platform.Events.Interfaces;
 
 namespace Bss.Platform.Events;
@@ -7,32 +8,41 @@ namespace Bss.Platform.Events;
 internal class EventTypeProvider<T> : IEventTypeProvider, IIntegrationEventSetup<T>
 {
     public IReadOnlyDictionary<Type, string> InternalEvents => this.internalTypes;
-
     public IReadOnlyDictionary<Type, string> ExternalEvents => this.externalTypes;
 
-    private readonly Dictionary<Type, string> internalTypes;
-    private readonly Dictionary<Type, string> externalTypes = new();
+    private readonly Dictionary<Type, string> internalTypes = [];
+    private readonly Dictionary<Type, string> externalTypes = [];
 
-    public EventTypeProvider(Assembly defaultAssembly)
+    public IIntegrationEventSetup<T> AddInternalEvents<TEvent>(string prefix = "", params Assembly[] assemblies)
+        where TEvent : T
     {
-        this.internalTypes =
-            defaultAssembly
-                .DefinedTypes
-                .Where(IsAssignableAndSatisfyCondition<T>)
-                .ToDictionary(Type (x) => x, x => x.Name);
+        var newTypes = GetOrDefaultAssembly<TEvent>(assemblies)
+            .SelectMany(x => x.DefinedTypes)
+            .Where(IsAssignableAndSatisfyCondition<TEvent>)
+            .Except(this.externalTypes.Keys);
+
+        foreach (var newType in newTypes)
+        {
+            this.internalTypes[newType] = $"{prefix}{newType.Name}";
+        }
+
+        return this;
     }
 
-    public IIntegrationEventSetup<T> AddInternalEvent<TImpl>(string routingKey) where TImpl : T
+    public IIntegrationEventSetup<T> AddInternalEvent<TEvent>(string routingKey)
+        where TEvent : class, T
     {
-        var type = typeof(TImpl);
+        var type = typeof(TEvent);
         this.internalTypes[type] = routingKey;
         return this;
     }
 
-    public IIntegrationEventSetup<T> AddExternalEvents<TExternalBase>(string prefix, params Assembly[] assemblies)
+    public IIntegrationEventSetup<T> AddExternalEvents<TEvent>(string prefix = "", params Assembly[] assemblies)
+        where TEvent : T
     {
-        var newTypes = assemblies.SelectMany(x => x.DefinedTypes)
-            .Where(IsAssignableAndSatisfyCondition<TExternalBase>)
+        var newTypes = GetOrDefaultAssembly<TEvent>(assemblies)
+            .SelectMany(x => x.DefinedTypes)
+            .Where(IsAssignableAndSatisfyCondition<TEvent>)
             .Except(this.externalTypes.Keys);
 
         foreach (var newType in newTypes)
@@ -43,12 +53,22 @@ internal class EventTypeProvider<T> : IEventTypeProvider, IIntegrationEventSetup
         return this;
     }
 
-    public IIntegrationEventSetup<T> AddExternalEvent<TExternalConcrete>(string routingKey)
-        where TExternalConcrete : class
+    public IIntegrationEventSetup<T> AddExternalEvent<TEvent>(string routingKey)
+        where TEvent : class, T
     {
-        var type = typeof(TExternalConcrete);
+        var type = typeof(TEvent);
         this.externalTypes[type] = routingKey;
         return this;
+    }
+
+    private static Assembly[] GetOrDefaultAssembly<TEvent>(Assembly[] assemblies) where TEvent : T
+    {
+        if (assemblies.Length == 0)
+        {
+            assemblies = [typeof(TEvent).Assembly];
+        }
+
+        return assemblies;
     }
 
     private static bool IsAssignableAndSatisfyCondition<TAssignableTo>(TypeInfo typeInfo) =>
