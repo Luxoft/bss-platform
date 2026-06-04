@@ -3,6 +3,7 @@ using System.Reflection;
 
 using Bss.Platform.Events.Abstractions;
 using Bss.Platform.Events.Interfaces;
+using Bss.Platform.Events.Internal;
 using Bss.Platform.Events.Models;
 using Bss.Platform.Events.Publishers;
 
@@ -39,23 +40,47 @@ public static class DependencyInjection
     }
 
     /// <summary>
+    /// A new way to register integration events, required to set up internal and external events <br/>
+    /// Used <see cref="Bss.Platform.Mediation.Abstractions.IMediator">Bss.Platform.Mediation</see>
+    /// </summary>
+    /// <returns>Automatically registered IIntegrationEventPublisher&lt;TEvent&gt; wrap it if you need</returns>
+    public static IServiceCollection AddPlatformIntegrationEvents<TEventProcessor>(
+        this IServiceCollection services,
+        Action<IIntegrationEventSetup<IIntegrationEvent, IIntegrationEvent>> setupEvents,
+        Action<IntegrationEventsOptions> setupOptions)
+        where TEventProcessor : class, IIntegrationEventProcessor<IIntegrationEvent> =>
+        services.AddPlatformIntegrationEvents<TEventProcessor, IIntegrationEvent, IIntegrationEvent>(setupEvents, setupOptions);
+
+    /// <summary>
     /// A new way to register integration events, required to set up internal and external events
     /// </summary>
     /// <returns>Automatically registered IIntegrationEventPublisher&lt;TEvent&gt; wrap it if you need</returns>
     public static IServiceCollection AddPlatformIntegrationEvents<TEventProcessor, TEvent>(
         this IServiceCollection services,
-        Action<IIntegrationEventSetup<TEvent>> setupEvents,
-        Action<IntegrationEventsOptions>? setupOptions = null)
+        Action<IIntegrationEventSetup<TEvent, TEvent>> setupEvents,
+        Action<IntegrationEventsOptions> setupOptions)
         where TEventProcessor : class, IIntegrationEventProcessor<TEvent>
-        where TEvent : notnull
+        where TEvent : notnull =>
+        services.AddPlatformIntegrationEvents<TEventProcessor, TEvent, TEvent>(setupEvents, setupOptions);
+
+    /// <summary>
+    /// A new way to register integration events, required to set up internal and external events
+    /// </summary>
+    /// <returns>Automatically registered IIntegrationEventPublisher&lt;TEvent&gt; wrap it if you need</returns>
+    public static IServiceCollection AddPlatformIntegrationEvents<TEventProcessor, TInputEvent, TOutputEvent>(
+        this IServiceCollection services,
+        Action<IIntegrationEventSetup<TInputEvent, TOutputEvent>> setupEvents,
+        Action<IntegrationEventsOptions> setupOptions)
+        where TEventProcessor : class, IIntegrationEventProcessor<TInputEvent>
+        where TInputEvent : notnull
     {
-        var typeProvider = new EventTypeProvider<TEvent>();
+        var typeProvider = new EventTypeProvider<TInputEvent,TOutputEvent>();
         setupEvents.Invoke(typeProvider);
 
         services
             .AddSingleton<IEventTypeProvider>(typeProvider)
             .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelectorNew>()
-            .AddScoped<IIntegrationEventPublisher<TEvent>, IntegrationEventPublisherNew<TEvent>>()
+            .AddScoped<IIntegrationEventPublisher<TInputEvent>, IntegrationEventPublisherNew<TInputEvent>>()
             .AddPlatformIntegrationEventsInternal(setupOptions)
             .Configure((RabbitMQOptions opt) =>
             {
@@ -64,16 +89,16 @@ public static class DependencyInjection
                 [
                     new(Headers.MessageId, sp.GetRequiredService<ISnowflakeId>().NextId().ToString()),
                     new(Headers.MessageName, msg.RoutingKey),
-                    new(Headers.Type, typeof(TEvent).Name)
+                    new(Headers.Type, typeof(TInputEvent).Name)
                 ];
             });
 
-        services.AddSingleton<IIntegrationEventProcessor<TEvent>, TEventProcessor>();
+        services.AddSingleton<IIntegrationEventProcessor<TInputEvent>, TEventProcessor>();
         // NOTE: register TEventProcessor for each type (required for CapConsumerExecutor<TEvent>)
-        typeProvider.InternalEvents.Keys
+        typeProvider.InputEvents.Keys
             .Select(t => typeof(IIntegrationEventProcessor<>).MakeGenericType(t))
             .ToList()
-            .ForEach(x => services.AddSingleton(x, sp => sp.GetRequiredService<IIntegrationEventProcessor<TEvent>>()));
+            .ForEach(x => services.AddSingleton(x, sp => sp.GetRequiredService<IIntegrationEventProcessor<TInputEvent>>()));
 
         return services;
     }
@@ -91,21 +116,25 @@ public static class DependencyInjection
             })
             .AddCap(x =>
             {
-                var eventsOptions = IntegrationEventsOptions.Default;
+                var eventsOptions = new IntegrationEventsOptions();
                 setupEventOptions?.Invoke(eventsOptions);
 
                 x.FailedRetryCount = eventsOptions.FailedRetryCount;
                 x.SucceedMessageExpiredAfter = (int)TimeSpan.FromDays(eventsOptions.RetentionDays).TotalSeconds;
 
-                x.UseSqlServer(o =>
+                if (!string.IsNullOrEmpty(eventsOptions.SqlServer.ConnectionString))
                 {
-                    o.ConnectionString = eventsOptions.SqlServer.ConnectionString;
-                    o.Schema = eventsOptions.SqlServer.Schema;
-                });
+                    x.UseSqlServer(o =>
+                    {
+                        o.ConnectionString = eventsOptions.SqlServer.ConnectionString;
+                        o.Schema = eventsOptions.SqlServer.Schema;
+                    });
+                }
 
                 x.UseDashboard(o =>
                 {
                     o.PathMatch = eventsOptions.DashboardPath;
+                    o.PathBase = eventsOptions.GatewayPrefix;
                     if (eventsOptions.AuthorizationPredicate is { } authPredicate)
                     {
                         o.AllowAnonymousExplicit = false;
@@ -114,26 +143,29 @@ public static class DependencyInjection
                 });
 
                 var rabbitSettings = eventsOptions.MessageQueue;
-                if (!rabbitSettings.Enable)
+                if (rabbitSettings.Enable)
+                {
+                    x.DefaultGroupName = string.IsNullOrWhiteSpace(rabbitSettings.QueueName)
+                        ? rabbitSettings.ExchangeName
+                        : rabbitSettings.QueueName;
+
+                    x.UseRabbitMQ(o =>
+                    {
+                        o.HostName = rabbitSettings.Host;
+                        o.Port = rabbitSettings.Port;
+                        o.VirtualHost = rabbitSettings.VirtualHost;
+                        o.Password = rabbitSettings.Secret;
+                        o.UserName = rabbitSettings.UserName;
+                        o.ExchangeName = rabbitSettings.ExchangeName;
+                        o.BasicQosOptions = new(1, true);
+                    });
+                }
+                else
                 {
                     x.UseInMemoryMessageQueue();
-                    return;
                 }
 
-                x.DefaultGroupName = string.IsNullOrWhiteSpace(rabbitSettings.QueueName)
-                    ? rabbitSettings.ExchangeName
-                    : rabbitSettings.QueueName;
-
-                x.UseRabbitMQ(o =>
-                {
-                    o.HostName = rabbitSettings.Host;
-                    o.Port = rabbitSettings.Port;
-                    o.VirtualHost = rabbitSettings.VirtualHost;
-                    o.Password = rabbitSettings.Secret;
-                    o.UserName = rabbitSettings.UserName;
-                    o.ExchangeName = rabbitSettings.ExchangeName;
-                    o.BasicQosOptions = new(1, true);
-                });
+                eventsOptions.OverrideCapOptions?.Invoke(x);
             });
 
         return services;

@@ -15,6 +15,6 @@ public class IntegrationEventsMessageQueueOptions
     public string VirtualHost { get; set; } = default!;
 
     public string ExchangeName { get; set; } = default!;
-    
+
     public string QueueName { get; set; } = default!;
 }
