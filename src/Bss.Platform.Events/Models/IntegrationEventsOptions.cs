@@ -24,6 +24,12 @@ public class IntegrationEventsOptions
     public Action<CapOptions>? OverrideCapOptions { get; set; }
 
     /// <summary>
+    /// When enable will be registered CAP filter to handle failed event on the last attempt, allow using multiple
+    /// <see cref="Bss.Platform.Events.Abstractions.IFailedEventProcessor" /> scoped implementations
+    /// </summary>
+    public bool UseFailedEventProcessor { get; set; }
+
+    /// <summary>
     /// Any condition to check that a user should get access to events dashboard
     /// </summary>
     /// <example>
