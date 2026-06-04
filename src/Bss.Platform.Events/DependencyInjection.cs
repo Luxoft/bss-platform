@@ -8,6 +8,7 @@ using Bss.Platform.Events.Models;
 using Bss.Platform.Events.Publishers;
 
 using DotNetCore.CAP;
+using DotNetCore.CAP.Filter;
 using DotNetCore.CAP.Internal;
 using DotNetCore.CAP.Messages;
 
@@ -73,6 +74,7 @@ public static class DependencyInjection
         Action<IntegrationEventsOptions> setupOptions)
         where TEventProcessor : class, IIntegrationEventProcessor<TInputEvent>
         where TInputEvent : notnull
+        where TOutputEvent : notnull
     {
         var typeProvider = new EventTypeProvider<TInputEvent,TOutputEvent>();
         setupEvents.Invoke(typeProvider);
@@ -80,7 +82,7 @@ public static class DependencyInjection
         services
             .AddSingleton<IEventTypeProvider>(typeProvider)
             .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelectorNew>()
-            .AddScoped<IIntegrationEventPublisher<TInputEvent>, IntegrationEventPublisherNew<TInputEvent>>()
+            .AddScoped<IIntegrationEventPublisher<TOutputEvent>, IntegrationEventPublisherNew<TOutputEvent>>()
             .AddPlatformIntegrationEventsInternal(setupOptions)
             .Configure((RabbitMQOptions opt) =>
             {
@@ -121,6 +123,11 @@ public static class DependencyInjection
 
                 x.FailedRetryCount = eventsOptions.FailedRetryCount;
                 x.SucceedMessageExpiredAfter = (int)TimeSpan.FromDays(eventsOptions.RetentionDays).TotalSeconds;
+
+                if (eventsOptions.UseFailedEventProcessor)
+                {
+                    services.AddScoped<ISubscribeFilter, CapExceptionFilter>();
+                }
 
                 if (!string.IsNullOrEmpty(eventsOptions.SqlServer.ConnectionString))
                 {
