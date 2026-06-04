@@ -1,6 +1,6 @@
 using Bss.Platform.Events.Interfaces;
 
-namespace Bss.Platform.Events;
+namespace Bss.Platform.Events.Internal;
 
 internal class CapConsumerExecutor<TEvent>(IIntegrationEventProcessor<TEvent> eventProcessor)
 {

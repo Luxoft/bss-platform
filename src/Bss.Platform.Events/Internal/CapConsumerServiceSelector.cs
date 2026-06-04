@@ -1,7 +1,6 @@
 using System.Reflection;
 
 using Bss.Platform.Events.Abstractions;
-using Bss.Platform.Events.Interfaces;
 
 using DotNetCore.CAP;
 using DotNetCore.CAP.Internal;
@@ -9,7 +8,7 @@ using DotNetCore.CAP.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Bss.Platform.Events;
+namespace Bss.Platform.Events.Internal;
 
 public class CapConsumerServiceSelectorLegacy(IServiceProvider serviceProvider, Assembly assembly)
     : CapConsumerServiceSelectorBase(serviceProvider)
@@ -18,7 +17,7 @@ public class CapConsumerServiceSelectorLegacy(IServiceProvider serviceProvider, 
         assembly
             .ExportedTypes
             .Where(x => typeof(IIntegrationEvent).IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false });
-    
+
     protected override CapSubscribeAttribute ProvideCapSubscribeAttribute(Type eventType)
     {
         var subscribeAttribute = new CapSubscribeAttribute(eventType.Name);
@@ -32,10 +31,10 @@ public class CapConsumerServiceSelectorNew(IServiceProvider serviceProvider, IEv
 {
     private readonly string queueName = capOptions.Value.DefaultGroupName;
     protected override IEnumerable<Type> GetInternalEventTypes() =>
-        eventTypeProvider.InternalEvents.Keys;
-    
+        eventTypeProvider.InputEvents.Keys;
+
     protected override CapSubscribeAttribute ProvideCapSubscribeAttribute(Type eventType) =>
-        new(eventTypeProvider.InternalEvents[eventType]) { Group = this.queueName };
+        new(eventTypeProvider.InputEvents[eventType]) { Group = this.queueName };
 }
 
 public abstract class CapConsumerServiceSelectorBase(IServiceProvider serviceProvider)

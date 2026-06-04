@@ -22,12 +22,12 @@ public class IntegrationEventPublisherNew<T>(ICapPublisher capPublisher, ICapTra
 
     protected override async Task PublishInternalAsync(T @event, CancellationToken cancellationToken)
     {
-        if (eventTypeProvider.InternalEvents.TryGetValue(@event.GetType(), out var internalRoutingKey))
+        if (eventTypeProvider.InputEvents.TryGetValue(@event.GetType(), out var internalRoutingKey))
         {
             await this.capPublisher.PublishAsync(internalRoutingKey, @event, cancellationToken: cancellationToken);
         }
 
-        if (eventTypeProvider.ExternalEvents.TryGetValue(@event.GetType(), out var externalRoutingKey)
+        if (eventTypeProvider.OutputEvents.TryGetValue(@event.GetType(), out var externalRoutingKey)
             && externalRoutingKey != internalRoutingKey)
         {
             await this.capPublisher.PublishAsync(externalRoutingKey, @event, cancellationToken: cancellationToken);
