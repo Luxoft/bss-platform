@@ -14,8 +14,8 @@ internal sealed class CapExceptionFilter(IOptions<CapOptions> capOptions, IEnume
 {
     private const string DetailsHeader = "x-cap-failure-details";
 
-    // NOTE: -1 value because the CAP incremented after filters
-    private int LatestRetryCount => capOptions.Value.FailedRetryCount - 1;
+    // NOTE: -1 value because the CAP incremented after filters and handle 0 retries case
+    private int LatestRetryCount => Math.Max(capOptions.Value.FailedRetryCount - 1, 0);
 
     public override Task OnSubscribeExceptionAsync(ExceptionContext context)
     {
@@ -33,9 +33,9 @@ internal sealed class CapExceptionFilter(IOptions<CapOptions> capOptions, IEnume
         var payloadParam = context.ConsumerDescriptor.Parameters.SingleOrDefault(p => !p.IsFromCap);
         var value = context.DeliverMessage.Value;
 
-        var payload = payloadParam is not null && value is not null
+        var payload = payloadParam is not null && value is not null && serializer.IsJsonType(value)
             ? serializer.Deserialize(value, payloadParam.ParameterType)
-            : null;
+            : value;
 
         return Task.WhenAll(failsProcessors.Select(x => x.HandleAsync(payload, ex)));
     }
