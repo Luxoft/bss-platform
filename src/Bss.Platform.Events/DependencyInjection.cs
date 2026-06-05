@@ -109,6 +109,14 @@ public static class DependencyInjection
         this IServiceCollection services,
         Action<IntegrationEventsOptions>? setupEventOptions = null)
     {
+        var eventsOptions = new IntegrationEventsOptions();
+        setupEventOptions?.Invoke(eventsOptions);
+
+        if (eventsOptions.UseFailedEventProcessor)
+        {
+            services.AddScoped<ISubscribeFilter, CapExceptionFilter>();
+        }
+
         services
             .AddScoped<ICapTransaction>(serviceProvider =>
             {
@@ -118,16 +126,8 @@ public static class DependencyInjection
             })
             .AddCap(x =>
             {
-                var eventsOptions = new IntegrationEventsOptions();
-                setupEventOptions?.Invoke(eventsOptions);
-
                 x.FailedRetryCount = eventsOptions.FailedRetryCount;
                 x.SucceedMessageExpiredAfter = (int)TimeSpan.FromDays(eventsOptions.RetentionDays).TotalSeconds;
-
-                if (eventsOptions.UseFailedEventProcessor)
-                {
-                    services.AddScoped<ISubscribeFilter, CapExceptionFilter>();
-                }
 
                 if (!string.IsNullOrEmpty(eventsOptions.SqlServer.ConnectionString))
                 {
