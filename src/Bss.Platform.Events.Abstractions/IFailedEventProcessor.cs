@@ -1,6 +1,6 @@
 namespace Bss.Platform.Events.Abstractions;
 
-public interface IFailedEventProcessor
+public interface IFailedEventProcessor<in TInputEvent>
 {
-    Task HandleAsync(object? value, Exception ex);
+    Task HandleAsync(TInputEvent? value, Exception ex, string? rawMessageBody);
 }
