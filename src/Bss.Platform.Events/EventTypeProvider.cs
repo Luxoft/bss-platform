@@ -5,7 +5,7 @@ using Bss.Platform.Events.Interfaces;
 
 namespace Bss.Platform.Events;
 
-internal class EventTypeProvider<TIn, TOut> : IEventTypeProvider, IIntegrationEventSetup<TIn, TOut>
+public class EventTypeProvider<TIn, TOut> : IEventTypeProvider, IIntegrationEventSetup<TIn, TOut>
 {
     public IReadOnlyDictionary<Type, string> InputEvents => this.inputTypes;
     public IReadOnlyDictionary<Type, string> OutputEvents => this.outputTypes;
@@ -18,8 +18,8 @@ internal class EventTypeProvider<TIn, TOut> : IEventTypeProvider, IIntegrationEv
     {
         var newTypes = GetOrDefaultAssembly<TEvent>(assemblies)
             .SelectMany(x => x.DefinedTypes)
-            .Where(IsAssignableAndSatisfyCondition<TEvent>)
-            .Except(this.outputTypes.Keys);
+            .Where(this.IsAssignableAndSatisfyCondition<TEvent>)
+            .Except(this.inputTypes.Keys);
 
         foreach (var newType in newTypes)
         {
@@ -42,7 +42,7 @@ internal class EventTypeProvider<TIn, TOut> : IEventTypeProvider, IIntegrationEv
     {
         var newTypes = GetOrDefaultAssembly<TEvent>(assemblies)
             .SelectMany(x => x.DefinedTypes)
-            .Where(IsAssignableAndSatisfyCondition<TEvent>)
+            .Where(this.IsAssignableAndSatisfyCondition<TEvent>)
             .Except(this.outputTypes.Keys);
 
         foreach (var newType in newTypes)
@@ -71,7 +71,7 @@ internal class EventTypeProvider<TIn, TOut> : IEventTypeProvider, IIntegrationEv
         return assemblies;
     }
 
-    private static bool IsAssignableAndSatisfyCondition<TAssignableTo>(TypeInfo typeInfo) =>
+    public virtual bool IsAssignableAndSatisfyCondition<TAssignableTo>(TypeInfo typeInfo) =>
         typeInfo is { IsInterface: false, IsAbstract: false, IsNested: false }
         && typeof(TAssignableTo).IsAssignableFrom(typeInfo)
         && !typeInfo.Name.Contains('<');
