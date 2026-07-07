@@ -36,4 +36,6 @@ public interface IIntegrationEventSetup<in TIn, in TOut>
     ///     <see cref="AddOutputEvents{TExternalBase}>)
     /// </summary>
     IIntegrationEventSetup<TIn, TOut> AddOutputEvent<TOutput>(string routingKey) where TOutput : class, TOut;
+
+    bool IsAssignableAndSatisfyCondition<TAssignableTo>(TypeInfo typeInfo);
 }
