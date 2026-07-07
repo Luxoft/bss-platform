@@ -1,5 +1,6 @@
 using System.Data;
 using System.Reflection;
+using System.Text.Json;
 
 using Bss.Platform.Events.Abstractions;
 using Bss.Platform.Events.Interfaces;
@@ -11,6 +12,7 @@ using DotNetCore.CAP;
 using DotNetCore.CAP.Filter;
 using DotNetCore.CAP.Internal;
 using DotNetCore.CAP.Messages;
+using DotNetCore.CAP.Serialization;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -30,12 +32,12 @@ public static class DependencyInjection
         this IServiceCollection services,
         Assembly eventsAssembly,
         Action<IntegrationEventsOptions>? setup = null)
-        where TEventProcessor : class, IIntegrationEventProcessor
+        where TEventProcessor : class, IIntegrationEventProcessor, IIntegrationEventProcessor<IIntegrationEvent>
     {
         services
             .AddSingleton<IIntegrationEventProcessor, TEventProcessor>()
             .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelectorLegacy>(x => new(x, eventsAssembly))
-            .AddPlatformIntegrationEventsInternal(SetLegacyQueueNameWithVersion(setup))
+            .AddPlatformIntegrationEventsInternal<IIntegrationEvent>(SetLegacyQueueNameWithVersion(setup))
             .TryAddLegacyEventPublisher();
 
         return services;
@@ -64,7 +66,7 @@ public static class DependencyInjection
         Action<IIntegrationEventSetup<TEvent, TEvent>> setupEvents,
         Action<IntegrationEventsOptions> setupOptions)
         where TEventProcessor : class, IIntegrationEventProcessor<TEvent>
-        where TEvent : notnull =>
+        where TEvent : class =>
         services.AddPlatformIntegrationEvents<TEventProcessor, TEvent, TEvent>(setupEvents, setupOptions);
 
     /// <summary>
@@ -76,7 +78,7 @@ public static class DependencyInjection
         Action<IIntegrationEventSetup<TInputEvent, TOutputEvent>> setupEvents,
         Action<IntegrationEventsOptions> setupOptions)
         where TEventProcessor : class, IIntegrationEventProcessor<TInputEvent>
-        where TInputEvent : notnull
+        where TInputEvent : class
         where TOutputEvent : notnull
     {
         var typeProvider = new EventTypeProvider<TInputEvent,TOutputEvent>();
@@ -85,7 +87,7 @@ public static class DependencyInjection
         services
             .AddSingleton<IEventTypeProvider>(typeProvider)
             .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelectorNew>()
-            .AddPlatformIntegrationEventsInternal(setupOptions)
+            .AddPlatformIntegrationEventsInternal<TInputEvent>(setupOptions)
             .Configure((RabbitMQOptions opt) =>
             {
                 // NOTE: required for rabbit messages generated outside of CAP
@@ -126,16 +128,23 @@ public static class DependencyInjection
             opt.MessageQueue.QueueName = string.IsNullOrWhiteSpace(originMessageQueueName) ? $"{opt.MessageQueue.ExchangeName}.v1" : originMessageQueueName;
         };
 
-    private static IServiceCollection AddPlatformIntegrationEventsInternal(
+    private static IServiceCollection AddPlatformIntegrationEventsInternal<TInputEvent>(
         this IServiceCollection services,
         Action<IntegrationEventsOptions>? setupEventOptions = null)
+        where TInputEvent : class
     {
         var eventsOptions = new IntegrationEventsOptions();
         setupEventOptions?.Invoke(eventsOptions);
+        setupEventOptions ??= _ => { };
+        services.Configure(setupEventOptions);
 
         if (eventsOptions.UseFailedEventProcessor)
         {
-            services.AddScoped<ISubscribeFilter, CapExceptionFilter>();
+            services.AddSingleton<DeadLetterProcessor>();
+            services.AddSingleton<IFailedEventProcessor<TInputEvent>>(sp => sp.GetRequiredService<DeadLetterProcessor>());
+
+            services.AddSingleton<ISerializer, RawCapturingSerializer>();
+            services.AddScoped<ISubscribeFilter, CapExceptionFilter<TInputEvent>>();
         }
 
         services
@@ -147,6 +156,7 @@ public static class DependencyInjection
             })
             .AddCap(x =>
             {
+                x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
                 x.FailedRetryCount = eventsOptions.FailedRetryCount;
                 x.SucceedMessageExpiredAfter = (int)TimeSpan.FromDays(eventsOptions.RetentionDays).TotalSeconds;
 
