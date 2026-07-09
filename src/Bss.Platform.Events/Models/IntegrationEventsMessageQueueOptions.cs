@@ -17,4 +17,26 @@ public class IntegrationEventsMessageQueueOptions
     public string ExchangeName { get; set; } = default!;
 
     public string QueueName { get; set; } = default!;
+
+    /// <summary>
+    /// Provide a path to section satisfied <see cref="ExternalSystemBindingsOptions"/> or configure ExternalSystemBindingsOptions by yourself, <br/>
+    /// but the mapping dictionary has caveats (null and empty values skipped by default, using this parameter, you will avoid that)
+    /// </summary>
+    /// <example>
+    /// Expected configuration:
+    /// <code>
+    /// {
+    ///   "ExternalSystemBindings": {
+    ///     "ExcludeOutputEvents": ["EXT.Debug*", "EXT.Internal.SomeEvent"],
+    ///     "SystemBindings": {
+    ///       "system1-allEvents-queue-except-excluded": null,
+    ///       "system2-allEvents-queue-except-excluded": [],
+    ///       "system3-fixedEvents-queue-exclude-not-applied": ["EXT.OrderCreated", "EXT.OrderCancelled", "EXT.Debug.Some"]
+    ///     }
+    ///   }
+    /// }
+    /// </code>
+    /// </example>
+
+    public string? ExternalSystemBindingsSectionPath { get; set; }
 }

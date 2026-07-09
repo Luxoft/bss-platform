@@ -16,6 +16,7 @@ using DotNetCore.CAP.Serialization;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -141,10 +142,19 @@ public static class DependencyInjection
         if (eventsOptions.UseFailedEventProcessor)
         {
             services.AddSingleton<DeadLetterProcessor>();
+            var (exchange, queue) = eventsOptions.DeadLetterOptions;
+            services.AddSingleton<IRabbitInitializer>(new DeadLetterBindingsInitializer(exchange, queue));
             services.AddSingleton<IFailedEventProcessor<TInputEvent>>(sp => sp.GetRequiredService<DeadLetterProcessor>());
 
             services.AddSingleton<ISerializer, RawCapturingSerializer>();
             services.AddScoped<ISubscribeFilter, CapExceptionFilter<TInputEvent>>();
+        }
+
+        if (eventsOptions.MessageQueue.Enable)
+        {
+            services.AddExternalSystemQueueBindings(eventsOptions.MessageQueue.ExternalSystemBindingsSectionPath);
+            services.AddSingleton<IRabbitInitializer, ExternalSystemQueueBindingsInitializer>();
+            services.AddHostedService<RabbitInitializersHostedService>();
         }
 
         services
@@ -208,6 +218,29 @@ public static class DependencyInjection
 
         return services;
     }
+
+    private static void AddExternalSystemQueueBindings(this IServiceCollection services, string? sectionPath)
+    {
+        var optionsBuilder = services.AddOptions<ExternalSystemBindingsOptions>();
+        if (!string.IsNullOrWhiteSpace(sectionPath))
+        {
+            optionsBuilder.BindConfiguration(sectionPath);
+            // ConfigurationBinder drops Dictionary entries whose bound value is null, and both `null` and `[]`
+            // bind to null for an array value - so BindConfiguration above silently loses SystemBindings keys
+            // that have no explicit routing keys. Rebuild that dictionary from IConfiguration directly instead.
+            // Uses Configure (not PostConfigure) so consumers can still override via PostConfigure regardless
+            // of call order relative to this setup method - PostConfigure always runs after every Configure.
+            optionsBuilder.Configure<IConfiguration>((options, configuration) =>
+                                                         options.SystemBindings = ResolveSystemBindings(configuration, sectionPath));
+        }
+    }
+
+    internal static Dictionary<string, string[]?> ResolveSystemBindings(IConfiguration configuration, string sectionPath) =>
+        configuration
+            .GetSection(sectionPath)
+            .GetSection(nameof(ExternalSystemBindingsOptions.SystemBindings))
+            .GetChildren()
+            .ToDictionary(section => section.Key, section => section.Get<string[]>());
 
     private static string AddDashboardAuthorizationPolicy(IServiceCollection services, Func<HttpContext, Task<bool>> authPredicate)
     {
