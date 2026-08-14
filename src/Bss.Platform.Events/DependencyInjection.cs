@@ -81,7 +81,7 @@ public static class DependencyInjection
                             o.Password = eventsOptions.MessageQueue.Secret;
                             o.UserName = eventsOptions.MessageQueue.UserName;
                             o.ExchangeName = eventsOptions.MessageQueue.ExchangeName;
-                            o.BasicQosOptions = new RabbitMQOptions.BasicQos(1, true);
+                            o.BasicQosOptions = new RabbitMQOptions.BasicQos(1);
                         });
                 });
 
