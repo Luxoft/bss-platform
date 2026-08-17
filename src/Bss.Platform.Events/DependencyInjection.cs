@@ -37,9 +37,9 @@ public static class DependencyInjection
     {
         services
             .AddSingleton<IIntegrationEventProcessor, TEventProcessor>()
-            .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelectorLegacy>(x => new(x, eventsAssembly))
-            .AddPlatformIntegrationEventsInternal<IIntegrationEvent>(SetLegacyQueueNameWithVersion(setup))
-            .TryAddLegacyEventPublisher();
+            .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelectorLegacy>(x => new(x, eventsAssembly));
+        services.AddPlatformIntegrationEventsInternal<IIntegrationEvent, IntegrationEventsOptions>(SetLegacyQueueNameWithVersion(setup));
+        services.TryAddLegacyEventPublisher();
 
         return services;
     }
@@ -52,7 +52,7 @@ public static class DependencyInjection
     public static IServiceCollection AddPlatformIntegrationEvents<TEventProcessor>(
         this IServiceCollection services,
         Action<IIntegrationEventSetup<IIntegrationEvent, IIntegrationEvent>> setupEvents,
-        Action<IntegrationEventsOptions> setupOptions)
+        Action<RabbitIntegrationEventsOptions> setupOptions)
         where TEventProcessor : class, IIntegrationEventProcessor<IIntegrationEvent> =>
         services
             .AddPlatformIntegrationEvents<TEventProcessor, IIntegrationEvent, IIntegrationEvent>(setupEvents, setupOptions)
@@ -65,7 +65,7 @@ public static class DependencyInjection
     public static IServiceCollection AddPlatformIntegrationEvents<TEventProcessor, TEvent>(
         this IServiceCollection services,
         Action<IIntegrationEventSetup<TEvent, TEvent>> setupEvents,
-        Action<IntegrationEventsOptions> setupOptions)
+        Action<RabbitIntegrationEventsOptions> setupOptions)
         where TEventProcessor : class, IIntegrationEventProcessor<TEvent>
         where TEvent : class =>
         services.AddPlatformIntegrationEvents<TEventProcessor, TEvent, TEvent>(setupEvents, setupOptions);
@@ -77,19 +77,20 @@ public static class DependencyInjection
     public static IServiceCollection AddPlatformIntegrationEvents<TEventProcessor, TInputEvent, TOutputEvent>(
         this IServiceCollection services,
         Action<IIntegrationEventSetup<TInputEvent, TOutputEvent>> setupEvents,
-        Action<IntegrationEventsOptions> setupOptions)
+        Action<RabbitIntegrationEventsOptions> setupOptions)
         where TEventProcessor : class, IIntegrationEventProcessor<TInputEvent>
         where TInputEvent : class
         where TOutputEvent : notnull
     {
+        // TODO: via configuration
         var typeProvider = new EventTypeProvider<TInputEvent,TOutputEvent>();
         setupEvents.Invoke(typeProvider);
 
         services
             .AddSingleton<IEventTypeProvider>(typeProvider)
-            .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelectorNew>()
-            .AddPlatformIntegrationEventsInternal<TInputEvent>(setupOptions)
-            .Configure((RabbitMQOptions opt) =>
+            .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelectorNew>();
+        var eventsOptions = services.AddPlatformIntegrationEventsInternal<TInputEvent, RabbitIntegrationEventsOptions>(setupOptions);
+        services.Configure((RabbitMQOptions opt) =>
             {
                 // NOTE: required for rabbit messages generated outside of CAP
                 opt.CustomHeadersBuilder = (msg, sp) =>
@@ -108,6 +109,31 @@ public static class DependencyInjection
             .ToList()
             .ForEach(x => services.AddSingleton(x, sp => sp.GetRequiredService<IIntegrationEventProcessor<TInputEvent>>()));
 
+        services.AddSingleton<IRabbitInitializer, RabbitEventSchemaExportInitializer>();
+
+        if (eventsOptions.UseFailedEventProcessor)
+        {
+            services.AddSingleton<DeadLetterProcessor>();
+            var (exchange, queue) = eventsOptions.DeadLetterOptions;
+            services.AddSingleton<IRabbitInitializer>(new DeadLetterBindingsInitializer(exchange, queue));
+            services.AddSingleton<IFailedEventProcessor<TInputEvent>>(sp => sp.GetRequiredService<DeadLetterProcessor>());
+            services.RemoveAll(typeof(ISerializer));
+            services.AddSingleton<ISerializer, RawCapturingSerializer>();
+            services.AddScoped<ISubscribeFilter, CapExceptionFilter<TInputEvent>>();
+        }
+
+        if (eventsOptions.MessageQueue.Enable)
+        {
+            services.AddExternalSystemQueueBindings(eventsOptions.MessageQueue.ExternalSystemBindingsSectionPath);
+            services.AddSingleton<IExternalSystemBindingsResolver, ExternalSystemBindingsResolver>();
+            services.AddSingleton<IRabbitInitializer, ExternalSystemQueueBindingsInitializer>();
+            if (eventsOptions.MessageQueue.EnableSchemaExport)
+            {
+                services.AddSingleton<IRabbitInitializer, RabbitEventSchemaExportInitializer>();
+            }
+
+            services.AddHostedService<RabbitInitializersHostedService>();
+        }
         return services;
     }
 
@@ -129,33 +155,16 @@ public static class DependencyInjection
             opt.MessageQueue.QueueName = string.IsNullOrWhiteSpace(originMessageQueueName) ? $"{opt.MessageQueue.ExchangeName}.v1" : originMessageQueueName;
         };
 
-    private static IServiceCollection AddPlatformIntegrationEventsInternal<TInputEvent>(
+    private static TOptions AddPlatformIntegrationEventsInternal<TInputEvent, TOptions>(
         this IServiceCollection services,
-        Action<IntegrationEventsOptions>? setupEventOptions = null)
+        Action<TOptions>? setupEventOptions = null)
         where TInputEvent : class
+        where TOptions : IntegrationEventsOptions, new()
     {
-        var eventsOptions = new IntegrationEventsOptions();
+        var eventsOptions = new TOptions();
         setupEventOptions?.Invoke(eventsOptions);
         setupEventOptions ??= _ => { };
         services.Configure(setupEventOptions);
-
-        if (eventsOptions.UseFailedEventProcessor)
-        {
-            services.AddSingleton<DeadLetterProcessor>();
-            var (exchange, queue) = eventsOptions.DeadLetterOptions;
-            services.AddSingleton<IRabbitInitializer>(new DeadLetterBindingsInitializer(exchange, queue));
-            services.AddSingleton<IFailedEventProcessor<TInputEvent>>(sp => sp.GetRequiredService<DeadLetterProcessor>());
-
-            services.AddSingleton<ISerializer, RawCapturingSerializer>();
-            services.AddScoped<ISubscribeFilter, CapExceptionFilter<TInputEvent>>();
-        }
-
-        if (eventsOptions.MessageQueue.Enable)
-        {
-            services.AddExternalSystemQueueBindings(eventsOptions.MessageQueue.ExternalSystemBindingsSectionPath);
-            services.AddSingleton<IRabbitInitializer, ExternalSystemQueueBindingsInitializer>();
-            services.AddHostedService<RabbitInitializersHostedService>();
-        }
 
         services
             .AddScoped<ICapTransaction>(serviceProvider =>
@@ -216,7 +225,7 @@ public static class DependencyInjection
                 eventsOptions.OverrideCapOptions?.Invoke(x);
             });
 
-        return services;
+        return eventsOptions;
     }
 
     private static void AddExternalSystemQueueBindings(this IServiceCollection services, string? sectionPath)
@@ -244,7 +253,7 @@ public static class DependencyInjection
 
     private static string AddDashboardAuthorizationPolicy(IServiceCollection services, Func<HttpContext, Task<bool>> authPredicate)
     {
-        const string policyName = "bss-platform-dashboard-auth";
+        const string policyName = "bss-platform-events-dashboard-auth";
         services.AddAuthorizationBuilder()
             .AddPolicy(
                 policyName,

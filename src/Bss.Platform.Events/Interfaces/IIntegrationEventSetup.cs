@@ -17,7 +17,7 @@ public interface IIntegrationEventSetup<in TIn, in TOut>
 
     /// <summary>
     ///     Add a single event with the routing key, overrides if it already exists (added by
-    ///     <see cref="AddInputEvents{TInternalBase}" />)
+    ///     <see cref="AddInputEvents{TInputBase}" />)
     /// </summary>
     IIntegrationEventSetup<TIn, TOut> AddInputEvent<TInput>(string routingKey) where TInput : class, TIn;
 
@@ -33,7 +33,7 @@ public interface IIntegrationEventSetup<in TIn, in TOut>
 
     /// <summary>
     ///     Add a single event with the routing key, overrides if it already exists (added by
-    ///     <see cref="AddOutputEvents{TExternalBase}>)
+    ///     <see cref="AddOutputEvents{TOutputBase}" />)
     /// </summary>
     IIntegrationEventSetup<TIn, TOut> AddOutputEvent<TOutput>(string routingKey) where TOutput : class, TOut;
 

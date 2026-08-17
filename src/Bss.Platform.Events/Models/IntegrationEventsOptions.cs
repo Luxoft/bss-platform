@@ -24,19 +24,6 @@ public class IntegrationEventsOptions
     public Action<CapOptions>? OverrideCapOptions { get; set; }
 
     /// <summary>
-    /// When enable will be registered CAP filter to handle failed event on the last attempt + deadlettering
-    /// Allow registering multiple scoped implementations of
-    /// <see cref="Bss.Platform.Events.Abstractions.IFailedEventProcessor" />
-    /// </summary>
-    public bool UseFailedEventProcessor { get; set; } = true;
-
-    /// <summary>
-    /// set exchange and queue names for deadlettering (routing key for deadletter message always empty) <br/>
-    /// used only when <see cref="UseFailedEventProcessor" /> is true
-    /// </summary>
-    public (string ExchangeName, string QueueName) DeadLetterOptions { get; set; } = ("deadletters", "deadletters");
-
-    /// <summary>
     /// Any condition to check that a user should get access to events dashboard
     /// </summary>
     /// <example>

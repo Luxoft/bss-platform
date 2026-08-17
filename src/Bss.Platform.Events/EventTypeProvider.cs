@@ -10,6 +10,7 @@ public class EventTypeProvider<TIn, TOut> : IEventTypeProvider, IIntegrationEven
     public IReadOnlyDictionary<Type, string> InputEvents => this.inputTypes;
     public IReadOnlyDictionary<Type, string> OutputEvents => this.outputTypes;
 
+    // TODO: reverse inputTypes to Dictionary<string, Type>
     private readonly Dictionary<Type, string> inputTypes = [];
     private readonly Dictionary<Type, string> outputTypes = [];
 

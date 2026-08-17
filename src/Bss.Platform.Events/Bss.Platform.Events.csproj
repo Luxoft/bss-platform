@@ -11,6 +11,7 @@
         <PackageReference Include="DotNetCore.CAP.RabbitMQ"/>
         <PackageReference Include="DotNetCore.CAP.SqlServer"/>
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"/>
+        <PackageReference Include="NJsonSchema" />
         <PackageReference Include="Savorboard.CAP.InMemoryMessageQueue"/>
     </ItemGroup>
 </Project>

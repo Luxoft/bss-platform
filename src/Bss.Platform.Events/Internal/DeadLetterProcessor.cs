@@ -16,16 +16,16 @@ namespace Bss.Platform.Events.Internal;
 internal sealed partial class DeadLetterProcessor(
     IConnectionChannelPool connectionChannelPool,
     IOptions<CapOptions> capOptions,
-    IEventTypeProvider registeredTypes,
-    IOptions<IntegrationEventsOptions> eventOptions,
-    ILogger<DeadLetterProcessor> logger) : IFailedEventProcessor<object>
+    IOptions<RabbitIntegrationEventsOptions> eventOptions,
+    ILogger<DeadLetterProcessor> logger,
+    IEventTypeProvider registeredTypes) : IFailedEventProcessor<object>
 {
     private readonly string exchangeName = eventOptions.Value.DeadLetterOptions.ExchangeName;
     private readonly string originMessageQueueName = capOptions.Value.DefaultGroupName;
 
     public Task HandleAsync(object? value, Exception ex, string? rawMessageBody)
     {
-        var routingKey = value != null && registeredTypes.InputEvents.TryGetValue(value.GetType(), out var registeredRoutingKey)
+        var routingKey = value != null && registeredTypes?.InputEvents.TryGetValue(value.GetType(), out var registeredRoutingKey) == true
             ? registeredRoutingKey
             : $"unknown message: {value?.GetType().Name ?? "<empty value message>"}";
 

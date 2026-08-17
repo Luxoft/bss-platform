@@ -5,8 +5,6 @@ using DotNetCore.CAP.RabbitMQ;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using RabbitMQ.Client;
-
 namespace Bss.Platform.Events.Internal;
 
 internal sealed partial class RabbitInitializersHostedService(
@@ -16,18 +14,11 @@ internal sealed partial class RabbitInitializersHostedService(
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        using var channel = connectionChannelPool.Rent();
-        await this.RunInitializersAsync(channel, cancellationToken);
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-    internal async Task RunInitializersAsync(IModel channel, CancellationToken cancellationToken)
-    {
         foreach (var initializer in initializers)
         {
             try
             {
+                using var channel = connectionChannelPool.Rent();
                 await initializer.InitializeAsync(channel, cancellationToken);
             }
             catch (Exception ex)
@@ -36,6 +27,8 @@ internal sealed partial class RabbitInitializersHostedService(
             }
         }
     }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     [LoggerMessage(LogLevel.Error, Message = "Rabbit initializer {InitializerName} failed to run")]
     partial void LogInitializerFailed(string initializerName, Exception ex);

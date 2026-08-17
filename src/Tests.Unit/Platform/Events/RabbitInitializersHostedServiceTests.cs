@@ -1,9 +1,13 @@
 using Bss.Platform.Events.Interfaces;
 using Bss.Platform.Events.Internal;
 
+using DotNetCore.CAP.RabbitMQ;
+
 using FluentAssertions;
 
 using Microsoft.Extensions.Logging.Abstractions;
+
+using RabbitMQ.Client;
 
 using Xunit;
 
@@ -33,6 +37,18 @@ public class RabbitInitializersHostedServiceTests
         }
     }
 
+    private sealed class ConnectionChannelPool: IConnectionChannelPool {
+        public IConnection GetConnection() => null!;
+
+        public IModel Rent() => null!;
+
+        public bool Return(IModel context) => true;
+
+        public string HostAddress => null!;
+
+        public string Exchange => null!;
+    }
+
     [Fact]
     public async Task RunInitializersAsync_continues_after_one_initializer_throws()
     {
@@ -41,11 +57,11 @@ public class RabbitInitializersHostedServiceTests
         var recordingAfter = new RecordingInitializer();
 
         var service = new RabbitInitializersHostedService(
-            connectionChannelPool: null!,
+            connectionChannelPool: new ConnectionChannelPool(),
             initializers: [recordingBefore, throwing, recordingAfter],
             logger: NullLogger<RabbitInitializersHostedService>.Instance);
 
-        await service.RunInitializersAsync(null!, CancellationToken.None);
+        await service.StartAsync(CancellationToken.None);
 
         recordingBefore.WasCalled.Should().BeTrue();
         throwing.WasCalled.Should().BeTrue();

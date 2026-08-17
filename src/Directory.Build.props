@@ -21,7 +21,9 @@
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <GenerateDocumentationFile Condition="'$(Configuration)' == 'Release'">true</GenerateDocumentationFile>
+        <GenerateDocumentationFile Condition="'$(Configuration)' != 'Release'">false</GenerateDocumentationFile>
+        <NoWarn Condition="'$(Configuration)' == 'Release'">$(NoWarn);1591</NoWarn>
 
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>

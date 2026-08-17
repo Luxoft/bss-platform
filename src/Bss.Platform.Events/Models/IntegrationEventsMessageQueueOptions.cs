@@ -4,6 +4,11 @@ public class IntegrationEventsMessageQueueOptions
 {
     public bool Enable { get; set; }
 
+    /// <summary>
+    /// Enable publishing a one-time event schema payload during startup.
+    /// </summary>
+    public bool EnableSchemaExport { get; set; }
+
     public string Host { get; set; } = default!;
 
     public int Port { get; set; } = 5672;
@@ -17,6 +22,11 @@ public class IntegrationEventsMessageQueueOptions
     public string ExchangeName { get; set; } = default!;
 
     public string QueueName { get; set; } = default!;
+
+    /// <summary>
+    /// RabbitMQ queue used by schema export initializer.
+    /// </summary>
+    public SchemaExportSettings? SchemaExportSettings { get; set; } = new();
 
     /// <summary>
     /// Provide a path to section satisfied <see cref="ExternalSystemBindingsOptions"/> or configure ExternalSystemBindingsOptions by yourself, <br/>
