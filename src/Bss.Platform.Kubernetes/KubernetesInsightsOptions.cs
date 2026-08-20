@@ -1,10 +1,10 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace Bss.Platform.Kubernetes;
 
 public record KubernetesInsightsOptions
 {
-    public bool SkipSuccessfulDependency { get; set; } = false;
+    public bool SkipSuccessfulDependency { get; set; } = true;
 
     /// <summary>
     /// Skip provided by this package health check probes ("/health/live", "/health/ready")
