@@ -18,5 +18,6 @@
         <ProjectReference Include="..\Bss.Platform.NHibernate.UnitTesting\Bss.Platform.NHibernate.UnitTesting.csproj"/>
         <ProjectReference Include="..\Bss.Platform.Mediation\Bss.Platform.Mediation.csproj" />
         <ProjectReference Include="..\Bss.Platform.Mediation.Abstractions\Bss.Platform.Mediation.Abstractions.csproj" />
+        <ProjectReference Include="..\Bss.Platform.RabbitMq.JsonSchemaGeneratorBase\Bss.Platform.RabbitMq.JsonSchemaGeneratorBase.csproj" />
     </ItemGroup>
 </Project>

@@ -5,13 +5,13 @@
     <ItemGroup>
         <ProjectReference Include="..\Bss.Platform.Events.Abstractions\Bss.Platform.Events.Abstractions.csproj"/>
         <ProjectReference Include="..\Bss.Platform.Mediation.Abstractions\Bss.Platform.Mediation.Abstractions.csproj"/>
+        <ProjectReference Include="..\Bss.Platform.RabbitMq.JsonSchemaGeneratorBase\Bss.Platform.RabbitMq.JsonSchemaGeneratorBase.csproj" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="DotNetCore.CAP.Dashboard"/>
         <PackageReference Include="DotNetCore.CAP.RabbitMQ"/>
         <PackageReference Include="DotNetCore.CAP.SqlServer"/>
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"/>
-        <PackageReference Include="NJsonSchema" />
         <PackageReference Include="Savorboard.CAP.InMemoryMessageQueue"/>
     </ItemGroup>
 </Project>

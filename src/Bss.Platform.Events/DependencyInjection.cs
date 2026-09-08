@@ -7,6 +7,7 @@ using Bss.Platform.Events.Interfaces;
 using Bss.Platform.Events.Internal;
 using Bss.Platform.Events.Models;
 using Bss.Platform.Events.Publishers;
+using Bss.Platform.RabbitMq.JsonSchemaGeneratorBase;
 
 using DotNetCore.CAP;
 using DotNetCore.CAP.Filter;
@@ -38,7 +39,7 @@ public static class DependencyInjection
         services
             .AddSingleton<IIntegrationEventProcessor, TEventProcessor>()
             .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelectorLegacy>(x => new(x, eventsAssembly));
-        services.AddPlatformIntegrationEventsInternal<IIntegrationEvent, IntegrationEventsOptions>(SetLegacyQueueNameWithVersion(setup));
+        services.AddPlatformIntegrationEventsInternal<IIntegrationEvent, IntegrationEventsOptions>(setup);
         services.TryAddLegacyEventPublisher();
 
         return services;
@@ -109,8 +110,6 @@ public static class DependencyInjection
             .ToList()
             .ForEach(x => services.AddSingleton(x, sp => sp.GetRequiredService<IIntegrationEventProcessor<TInputEvent>>()));
 
-        services.AddSingleton<IRabbitInitializer, RabbitEventSchemaExportInitializer>();
-
         if (eventsOptions.UseFailedEventProcessor)
         {
             services.AddSingleton<DeadLetterProcessor>();
@@ -127,9 +126,11 @@ public static class DependencyInjection
             services.AddExternalSystemQueueBindings(eventsOptions.MessageQueue.ExternalSystemBindingsSectionPath);
             services.AddSingleton<IExternalSystemBindingsResolver, ExternalSystemBindingsResolver>();
             services.AddSingleton<IRabbitInitializer, ExternalSystemQueueBindingsInitializer>();
-            if (eventsOptions.MessageQueue.EnableSchemaExport)
+            if (eventsOptions.MessageQueue.SchemaExportSettings != null)
             {
                 services.AddSingleton<IRabbitInitializer, RabbitEventSchemaExportInitializer>();
+                services.AddSingleton<IRabbitSchemaExportSettings, RabbitSchemaExportSettings>();
+                services.AddSingleton<RabbitEventsSchemaExporter>();
             }
 
             services.AddHostedService<RabbitInitializersHostedService>();
@@ -145,9 +146,10 @@ public static class DependencyInjection
     }
 
     /// <summary>
-    /// requiered for backward compatibility, added postfix ".v1" to queue name, like origin cap behavior without <see cref="CapConsumerServiceSelectorNew" />
+    /// required for backward compatibility, added postfix ".v1" to queue name, like origin cap behavior without <see cref="CapConsumerServiceSelectorNew" />
     /// </summary>
-    private static Action<IntegrationEventsOptions> SetLegacyQueueNameWithVersion(Action<IntegrationEventsOptions>? setupOptions) =>
+    // TODO: remove or investigate when it's really really needed
+    private static Action<RabbitIntegrationEventsOptions> SetLegacyQueueNameWithVersion(Action<RabbitIntegrationEventsOptions>? setupOptions) =>
         opt =>
         {
             setupOptions?.Invoke(opt);

@@ -4,10 +4,8 @@ public class IntegrationEventsMessageQueueOptions
 {
     public bool Enable { get; set; }
 
-    /// <summary>
-    /// Enable publishing a one-time event schema payload during startup.
-    /// </summary>
-    public bool EnableSchemaExport { get; set; }
+    // TODO: remove
+    public bool EnableSchemaExport => this.SchemaExportSettings != null;
 
     public string Host { get; set; } = default!;
 
@@ -24,7 +22,9 @@ public class IntegrationEventsMessageQueueOptions
     public string QueueName { get; set; } = default!;
 
     /// <summary>
-    /// RabbitMQ queue used by schema export initializer.
+    /// RabbitMQ queue used by schema export initializer
+    /// to publish a one-time event schema payload during startup,
+    /// if null, then that mechanism is disabled
     /// </summary>
     public SchemaExportSettings? SchemaExportSettings { get; set; } = new();
 

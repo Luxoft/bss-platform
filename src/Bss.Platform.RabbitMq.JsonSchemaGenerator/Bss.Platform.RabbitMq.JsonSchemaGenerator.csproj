@@ -9,5 +9,8 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\Bss.Platform.RabbitMq.Consumer\Bss.Platform.RabbitMq.Consumer.csproj" />
+
+        <!-- todo: remove, it should come transtively from RabbitMq.Consumer -->
+        <ProjectReference Include="..\Bss.Platform.RabbitMq.JsonSchemaGeneratorBase\Bss.Platform.RabbitMq.JsonSchemaGeneratorBase.csproj" />
     </ItemGroup>
 </Project>

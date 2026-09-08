@@ -8,5 +8,5 @@ public class SchemaExportSettings
 
     public string RoutingKey { get; set; } = "RabbitEventSchemas";
 
-    public string System { get; set; } = Assembly.GetEntryAssembly()?.GetName().Name ?? string.Empty;
+    public string System { get; set; } = string.Empty;
 }

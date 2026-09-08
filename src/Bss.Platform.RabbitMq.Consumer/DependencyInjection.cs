@@ -60,7 +60,7 @@ public static class DependencyInjection
 
         return services.AddRabbitAndEvents<TProcessor, TEvent>(configuration, internalBuilder.RegisteredMessages);
     }
-    
+
     /// <summary>
     ///     Add consumer with default serialization (case in-sensitive), and find and register events marked by attribute
     /// </summary>
