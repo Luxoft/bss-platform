@@ -22,7 +22,10 @@ internal class RabbitSchemaExportSettings(
 
     public string FromQueueName => capOptions.Value.DefaultGroupName;
 
-    public string System => eventOptions.Value.MessageQueue.SchemaExportSettings?.System ?? Assembly.GetEntryAssembly()?.GetName().Name ?? string.Empty;
+    public string System =>
+        eventOptions.Value.MessageQueue.SchemaExportSettings?.System is { Length: > 0 } systemNameFromConfiguration
+            ? systemNameFromConfiguration
+            : IRabbitSchemaExportSettings.SystemEntryAssemblyName;
 
     public IReadOnlyDictionary<string, Type> InputEvents => eventTypeProvider.InputEvents.ToDictionary(x => x.Value, x => x.Key);
 

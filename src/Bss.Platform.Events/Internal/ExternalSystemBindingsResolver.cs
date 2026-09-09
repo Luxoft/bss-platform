@@ -31,27 +31,4 @@ public class ExternalSystemBindingsResolver(
         var allUniqOutputRoutingKeys = this.ResolveQueueBindings().Values.SelectMany(x => x).Distinct();
         return eventTypeProvider.OutputEvents.Where(x => allUniqOutputRoutingKeys.Contains(x.Value)).ToDictionary(x => x.Value, x => x.Key);
     }
-
-    public IReadOnlyDictionary<string, Type> ResolveInputEventsForExport()
-    {
-        return eventTypeProvider.InputEvents.ToDictionary(x => x.Value, x => x.Key);
-    }
-
-/*
-    public IReadOnlyDictionary<string, Type> ResolveOutputEventsForExport(ExternalSystemBindingsOptions options) =>
-        eventTypeProvider.OutputEvents
-            .Where(x => !this.IsExcluded(x.Value, options.ExcludeOutputEvents))
-            .GroupBy(x => x.Value, StringComparer.Ordinal)
-            .ToDictionary(x => x.Key, x => x.First().Key, StringComparer.Ordinal);
-*/
-/*
-    private string[] ResolveDefaultRoutingKeys(ExternalSystemBindingsOptions options) =>
-        eventTypeProvider.OutputEvents.Values
-            .Distinct()
-            .Where(routingKey => !this.IsExcluded(routingKey, options.ExcludeOutputEvents))
-            .ToArray();
-
-    private bool IsExcluded(string routingKey, string[] excludeOutputEvents) =>
-        excludeOutputEvents.Any(pattern => WildcardMatcher.IsMatch(routingKey, pattern));
-        */
 }

@@ -1,6 +1,5 @@
 using System.Data;
 using System.Reflection;
-using System.Text.Json;
 
 using Bss.Platform.Events.Abstractions;
 using Bss.Platform.Events.Interfaces;
@@ -128,7 +127,7 @@ public static class DependencyInjection
             services.AddSingleton<IRabbitInitializer, ExternalSystemQueueBindingsInitializer>();
             if (eventsOptions.MessageQueue.SchemaExportSettings != null)
             {
-                services.AddSingleton<IRabbitInitializer, RabbitEventSchemaExportInitializer>();
+                services.AddSingleton<IRabbitInitializer, RabbitExportEventsSchemaInitializer>();
                 services.AddSingleton<IRabbitSchemaExportSettings, RabbitSchemaExportSettings>();
                 services.AddSingleton<RabbitEventsSchemaExporter>();
             }

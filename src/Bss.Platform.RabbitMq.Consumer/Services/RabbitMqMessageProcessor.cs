@@ -12,11 +12,9 @@ namespace Bss.Platform.RabbitMq.Consumer.Services;
 internal class RabbitMqMessageProcessor<TEvent>(
     IRabbitMqEventProcessor<TEvent> rabbitEventProcessor,
     ILogger<RabbitMqMessageProcessor<TEvent>> logger,
-    [FromKeyedServices(DependencyInjection.RoutingMessageProviderKey)]
+    [FromKeyedServices(DependencyInjection.RoutingConsumedMessagesProviderKey)]
     Dictionary<string, Type> registeredHandlers) : IRabbitMqMessageProcessor
 {
-    private static readonly JsonSerializerOptions CaseInsensitiveJsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
-
     public Task ProcessAsync(IBasicProperties properties, string routingKey, string message, CancellationToken token)
     {
         if (!registeredHandlers.TryGetValue(routingKey, out var handlerType))
@@ -26,7 +24,7 @@ internal class RabbitMqMessageProcessor<TEvent>(
             throw new InvalidOperationException(error.Replace("{RoutingKey}", routingKey));
         }
 
-        var request = JsonSerializer.Deserialize(message, handlerType, CaseInsensitiveJsonSerializerOptions);
+        var request = JsonSerializer.Deserialize(message, handlerType, IRabbitMqMessageProcessor.CaseInsensitiveJsonSerializerOptions);
         if (request is null)
         {
             const string error = "The request with routing key '{RoutingKey}' could not be deserialized.";

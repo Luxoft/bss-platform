@@ -7,9 +7,12 @@ namespace Bss.Platform.RabbitMq.JsonSchemaGeneratorBase;
 
 public sealed class RabbitEventsSchemaExporter(IRabbitSchemaExportSettings settings)
 {
-    public void Export(IModel model, CancellationToken cancellationToken)
+    public void Export(IModel model)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        if (!settings.IsEnabled)
+        {
+            return;
+        }
 
         var exportExchange = settings.ExchangeName;
         var exportQueue = settings.ToQueueName;
