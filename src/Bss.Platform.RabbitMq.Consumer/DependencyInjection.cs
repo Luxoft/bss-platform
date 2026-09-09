@@ -4,6 +4,7 @@ using Bss.Platform.RabbitMq.Consumer.Interfaces;
 using Bss.Platform.RabbitMq.Consumer.Internal;
 using Bss.Platform.RabbitMq.Consumer.Services;
 using Bss.Platform.RabbitMq.Consumer.Settings;
+using Bss.Platform.RabbitMq.JsonSchemaGeneratorBase;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,8 +13,8 @@ namespace Bss.Platform.RabbitMq.Consumer;
 
 public static class DependencyInjection
 {
-    public const string RoutingMessageProviderKey = nameof(RoutingMessageProviderKey);
-    
+    public const string RoutingConsumedMessagesProviderKey = nameof(RoutingConsumedMessagesProviderKey);
+
     public static IServiceCollection AddPlatformRabbitMqSqlServerConsumerLock(this IServiceCollection services, string connectionString) =>
         services
             .AddSingleton<IRabbitMqConsumerLockService, MsSqlLockService>()
@@ -38,6 +39,8 @@ public static class DependencyInjection
         }
 
         return services
+            .AddSingleton<IRabbitMqInitializer, ExportEventsSchemaInitializer>()
+            .AddKeyedSingleton<IRabbitSchemaExportSettings, ExportEventsSchemaInitializer.RabbitSchemaExportSettings>(ExportEventsSchemaInitializer.SettingsKey)
             .Configure<RabbitMqConsumerSettings>(consumerSettingsSection)
             .AddSingleton<IRabbitMqMessageReader, MessageReader>()
             .AddSingleton<IDeadLetterProcessor, DeadLetterProcessor>()
@@ -60,7 +63,7 @@ public static class DependencyInjection
 
         return services.AddRabbitAndEvents<TProcessor, TEvent>(configuration, internalBuilder.RegisteredMessages);
     }
-    
+
     /// <summary>
     ///     Add consumer with default serialization (case in-sensitive), and find and register events marked by attribute
     /// </summary>
@@ -74,6 +77,37 @@ public static class DependencyInjection
         var messages = new AttributeMessageLinkProvider<TAttribute>(getRoutingKey).Find();
 
         return services.AddRabbitAndEvents<TProcessor, TEvent>(configuration, messages);
+    }
+
+    /// <summary>
+    /// Allowed to register types for input/output events and system name, only provided values for exporter
+    /// and override autoregistered input types, but the exporter registered in
+    /// <li> <see cref="AddPlatformRabbitMqConsumer" /> </li>
+    /// <li> <see cref="AddPlatformRabbitMqConsumerWithMessages{TProcessor, TEvent}" /> </li>
+    /// <li> <see cref="AddPlatformRabbitMqConsumerWithMessages{TProcessor, TEvent, TAttribute}" /> </li>
+    /// </summary>
+    public static IServiceCollection RegisterRabbitTypesForExporter(
+        this IServiceCollection services,
+        string? systemName = null,
+        IReadOnlyDictionary<string, Type>? inputEvents = null,
+        IReadOnlyDictionary<string, Type>? outputEvents = null)
+    {
+        if (systemName != null)
+        {
+            services.AddKeyedSingleton(ExportEventsSchemaInitializer.RabbitSchemaExportSettings.SystemNameKey, systemName);
+        }
+
+        if (inputEvents != null)
+        {
+            services.AddKeyedSingleton(ExportEventsSchemaInitializer.RabbitSchemaExportSettings.InputEventTypeKey, inputEvents);
+        }
+
+        if (outputEvents != null)
+        {
+            services.AddKeyedSingleton(ExportEventsSchemaInitializer.RabbitSchemaExportSettings.OutputEventTypeKey, outputEvents);
+        }
+
+        return services;
     }
 
     private static IServiceCollection AddRabbitAndEvents<TProcessor, TEvent>(
@@ -93,9 +127,8 @@ public static class DependencyInjection
                     $"Unexpected message type '{x.MessageType.Name}' with routing key '{x.RoutingKey}', allow only {typeof(TEvent).Name} and its subtypes"),
             StringComparer.OrdinalIgnoreCase);
 
-        services.AddKeyedSingleton(RoutingMessageProviderKey, routeMessages);
-        services.PostConfigure<RabbitMqConsumerSettings>(
-            opts =>
+        services.AddKeyedSingleton(RoutingConsumedMessagesProviderKey, routeMessages);
+        services.PostConfigure<RabbitMqConsumerSettings>(opts =>
             {
                 if (opts.RoutingKeys.Length > 0)
                 {

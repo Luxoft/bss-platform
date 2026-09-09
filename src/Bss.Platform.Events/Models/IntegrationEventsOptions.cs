@@ -1,19 +1,28 @@
+using DotNetCore.CAP;
+
 using Microsoft.AspNetCore.Http;
 
 namespace Bss.Platform.Events.Models;
 
 public class IntegrationEventsOptions
 {
-    public string DashboardPath { get; set; } = default!;
+    public string DashboardPath { get; set; } = "/admin/events";
 
-    public int FailedRetryCount { get; set; }
+    public string GatewayPrefix { get; set; } = string.Empty;
 
-    public int RetentionDays { get; set; }
+    public int FailedRetryCount { get; set; } = 5;
 
-    public IntegrationEventsSqlServerOptions SqlServer { get; set; } = default!;
+    public int RetentionDays { get; set; } = 15;
 
-    public IntegrationEventsMessageQueueOptions MessageQueue { get; set; } = default!;
-    
+    /// <summary>
+    /// required to fill connection string in options, otherwise MS SQL db won't connect
+    /// </summary>
+    public IntegrationEventsSqlServerOptions SqlServer { get; set; } = new() { Schema = "events" };
+
+    public IntegrationEventsMessageQueueOptions MessageQueue { get; set; } = new() { Enable = true };
+
+    public Action<CapOptions>? OverrideCapOptions { get; set; }
+
     /// <summary>
     /// Any condition to check that a user should get access to events dashboard
     /// </summary>
@@ -21,14 +30,4 @@ public class IntegrationEventsOptions
     /// AuthorizationPolicyPredicate = (httpContext) => httpContext.RequestServices.GetRequiredService&lt;ICurrentUser&gt;().IsAdminAsync()
     /// </example>
     public Func<HttpContext, Task<bool>>? AuthorizationPredicate { get; set; }
-
-    public static IntegrationEventsOptions Default =>
-        new()
-        {
-            DashboardPath = "/admin/events",
-            FailedRetryCount = 5,
-            RetentionDays = 15,
-            SqlServer = new IntegrationEventsSqlServerOptions { Schema = "events" },
-            MessageQueue = new IntegrationEventsMessageQueueOptions { Enable = true }
-        };
 }
