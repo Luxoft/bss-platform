@@ -16,7 +16,12 @@ internal class ConsumerInitializer(IOptions<RabbitMqConsumerSettings> options) :
         model.ExchangeDeclare(consumerSettings.Exchange, ExchangeType.Topic, true);
         model.ExchangeDeclare(consumerSettings.DeadLetterExchange, ExchangeType.Fanout, true);
 
-        model.QueueDeclare(consumerSettings.Queue, true, false, false, null);
+        model.QueueDeclare(
+            consumerSettings.Queue,
+            true,
+            false,
+            false,
+            new Dictionary<string, object> { { "x-queue-type", "quorum" } });
 
         if (consumerSettings.RoutingKeys.Length == 0)
         {
