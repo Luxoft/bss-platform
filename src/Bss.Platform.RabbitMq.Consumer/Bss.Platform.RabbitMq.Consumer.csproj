@@ -3,6 +3,7 @@
         <PackageId>Luxoft.Bss.Platform.RabbitMq.Consumer</PackageId>
     </PropertyGroup>
     <ItemGroup>
+        <ProjectReference Include="..\Bss.Platform.RabbitMq.JsonSchemaGeneratorBase\Bss.Platform.RabbitMq.JsonSchemaGeneratorBase.csproj" />
         <ProjectReference Include="..\Bss.Platform.RabbitMq\Bss.Platform.RabbitMq.csproj"/>
     </ItemGroup>
     <ItemGroup>

@@ -2,7 +2,9 @@ using Bss.Platform.Events.Abstractions;
 
 namespace Bss.Platform.Events.Interfaces;
 
-public interface IIntegrationEventProcessor
+public interface IIntegrationEventProcessor : IIntegrationEventProcessor<IIntegrationEvent>;
+
+public interface IIntegrationEventProcessor<in T>
 {
-    Task ProcessAsync(IIntegrationEvent @event, CancellationToken token);
+    Task ProcessAsync(T @event, CancellationToken token);
 }
