@@ -215,7 +215,8 @@ public static class DependencyInjection
                         o.Password = rabbitSettings.Secret;
                         o.UserName = rabbitSettings.UserName;
                         o.ExchangeName = rabbitSettings.ExchangeName;
-                        o.BasicQosOptions = new(1, true);
+                        o.BasicQosOptions = new(1);
+                        o.QueueArguments.QueueType = "quorum";
                     });
                 }
                 else
