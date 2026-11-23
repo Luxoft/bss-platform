@@ -289,6 +289,11 @@ To use events, first install the [NuGet package](https://www.nuget.org/packages/
 dotnet add package Luxoft.Bss.Platform.Events
 ```
 
+> [!NOTE]
+> For the new integration-events registration (`AddPlatformIntegrationEvents` overloads, input/output events,
+> failed event processing, breaking changes and the queue-name `.v1` switch) see the
+> [package README](src/Bss.Platform.Events/README.md).
+
 ### Domain Events
 
 To use domain events, you need register it in DI

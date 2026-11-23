@@ -5,6 +5,8 @@ namespace Bss.Platform.RabbitMq.JsonSchemaGenerator;
 
 public static class DependencyInjection
 {
+    // TODO: update obsolete message (link to readme?)
+    [Obsolete("Use new consumer based or provide RabbitEventsSchemaExporter instead")]
     public static IApplicationBuilder UseRabbitJsonSchemaGenerator(
         this IApplicationBuilder app,
         Action<GenerateSchemaOptions>? setup = null)
@@ -14,7 +16,7 @@ public static class DependencyInjection
 
         var consumedEvents =
             app.ApplicationServices
-                .GetKeyedService<Dictionary<string, Type>>(Consumer.DependencyInjection.RoutingMessageProviderKey)
+                .GetKeyedService<Dictionary<string, Type>>(Consumer.DependencyInjection.RoutingConsumedMessagesProviderKey)
                 ?.Select(x => (x.Key, x.Value))
             ?? [];
 

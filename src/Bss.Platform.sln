@@ -58,6 +58,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__Solution Items", "__Solut
 		Directory.Packages.props = Directory.Packages.props
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bss.Platform.RabbitMq.JsonSchemaGeneratorBase", "Bss.Platform.RabbitMq.JsonSchemaGeneratorBase\Bss.Platform.RabbitMq.JsonSchemaGeneratorBase.csproj", "{6574B96D-56B5-4AC1-BF8B-711D86A8E9AA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -124,6 +126,10 @@ Global
 		{9EE0DF52-2C67-4DD1-AA9D-64ABC5BD00D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EE0DF52-2C67-4DD1-AA9D-64ABC5BD00D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9EE0DF52-2C67-4DD1-AA9D-64ABC5BD00D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6574B96D-56B5-4AC1-BF8B-711D86A8E9AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6574B96D-56B5-4AC1-BF8B-711D86A8E9AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6574B96D-56B5-4AC1-BF8B-711D86A8E9AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6574B96D-56B5-4AC1-BF8B-711D86A8E9AA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -144,6 +150,7 @@ Global
 		{0FC70E24-62A9-44BF-A433-804C98514A09} = {0F54786D-AB46-46AC-88DF-BEB789A62C1F}
 		{393C3A3D-E55F-4006-81A7-ED1CB3FAC1FF} = {40F06493-58CE-4E9D-BBB4-771BD26A9658}
 		{9EE0DF52-2C67-4DD1-AA9D-64ABC5BD00D7} = {40F06493-58CE-4E9D-BBB4-771BD26A9658}
+		{6574B96D-56B5-4AC1-BF8B-711D86A8E9AA} = {0F54786D-AB46-46AC-88DF-BEB789A62C1F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9CEE3EB7-A785-4C3D-A1AE-9E82E66B9252}

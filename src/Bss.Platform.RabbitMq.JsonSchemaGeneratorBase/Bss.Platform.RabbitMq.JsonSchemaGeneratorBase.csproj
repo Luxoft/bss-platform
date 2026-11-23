@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <PackageId>Luxoft.Bss.Platform.RabbitMq.JsonSchemaGeneratorBase</PackageId>
+        <RootNamespace>Bss.Platform.RabbitMq.JsonSchemaGeneratorBase</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="NJsonSchema" />
+        <PackageReference Include="RabbitMQ.Client" />
+    </ItemGroup>
+</Project>
