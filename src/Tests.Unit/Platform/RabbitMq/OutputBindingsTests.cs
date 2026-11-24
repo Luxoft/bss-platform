@@ -85,6 +85,21 @@ public class OutputBindingsTests
         Assert.Empty(provider.GetRequiredService<IOptions<RabbitMqProducerSettings>>().Value.SystemBindings!);
     }
 
+    [Theory]
+    [InlineData("{}", false)]
+    [InlineData("{\"SystemBindings\":{}}", true)]
+    [InlineData("{\"SystemBindings\":null}", true)]
+    public void Json_configuration_distinguishes_absent_and_explicit_empty_selection(string producerJson, bool hasSelection)
+    {
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes($"{{\"RabbitMQ\":{{\"Producer\":{producerJson}}}}}"));
+        var configuration = new ConfigurationBuilder().AddJsonStream(stream).Build();
+        var services = new ServiceCollection();
+        services.AddPlatformRabbitMqClient(configuration).RegisterRabbitMqOutputEvents(x => x.AddOutputEvent<string>("A"));
+        using var provider = services.BuildServiceProvider();
+        Assert.Equal(hasSelection, provider.GetRequiredService<IOptions<RabbitMqProducerSettings>>().Value.SystemBindings is not null);
+        Assert.Equal(hasSelection ? 0 : 1, provider.GetRequiredService<IOutputBindingsResolver>().ResolveSchemaEvents().Count);
+    }
+
     [Fact]
     public async Task Output_initializer_declares_exchange_before_binding_and_uses_queue_policy()
     {

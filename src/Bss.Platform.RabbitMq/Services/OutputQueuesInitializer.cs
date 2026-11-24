@@ -14,7 +14,16 @@ public class OutputQueuesInitializer(
     IQueueDeclarationPolicy queuePolicy) : IRabbitInitializer
 {
     public int Order => 100;
-    public bool IsEnabled => bindings.ResolveQueueBindings().Count > 0;
+    public bool IsEnabled
+    {
+        get
+        {
+            if (bindings.ResolveQueueBindings().Count == 0) return false;
+            if (string.IsNullOrWhiteSpace(options.Value.Exchange))
+                throw new InvalidOperationException("RabbitMQ:Exchange is required for output queues.");
+            return true;
+        }
+    }
 
     public Task InitializeAsync(IModel channel, CancellationToken cancellationToken)
     {

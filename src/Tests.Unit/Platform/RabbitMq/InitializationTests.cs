@@ -130,4 +130,18 @@ public class InitializationTests
         using var provider = services.BuildServiceProvider();
         Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<IOptions<RabbitMqSettings>>().Value);
     }
+
+    [Fact]
+    public void Postconfigure_legacy_consumer_overrides_are_used_for_common_exchange()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["RabbitMQ:Consumer:Exchange"] = "configured"
+        }).Build();
+        var services = new ServiceCollection();
+        services.AddPlatformRabbitMqClient(configuration).AddPlatformRabbitMqConsumer<Processor>(configuration);
+        services.PostConfigure<RabbitMqConsumerSettings>(x => x.Exchange = "overridden");
+        using var provider = services.BuildServiceProvider();
+        Assert.Equal("overridden", provider.GetRequiredService<IOptions<RabbitMqSettings>>().Value.Exchange);
+    }
 }

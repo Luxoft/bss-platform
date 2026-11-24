@@ -1,6 +1,7 @@
 using Bss.Platform.RabbitMq.Interfaces;
 using Bss.Platform.RabbitMq.Base;
 using Bss.Platform.RabbitMq.Services;
+using Bss.Platform.RabbitMq.Schemas;
 using Bss.Platform.RabbitMq.Settings;
 
 using Microsoft.Extensions.Configuration;
@@ -16,6 +17,10 @@ public static class DependencyInjection
     public static IServiceCollection AddPlatformRabbitMqClient(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddRabbitMqBase();
+        services.AddRabbitMqSchemas();
+        services.Configure<RabbitSchemaOptions>(configuration.GetSection("RabbitMQ:Schemas"));
+        services.TryAddSingleton<IRabbitSchemaTypeProvider, PlatformSchemaTypeProvider>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IRabbitInitializer, ExportSchemasInitializer>());
         services.AddOptions<OutputEventCatalog>();
         services.TryAddSingleton<IOutputEventCatalog>(sp => sp.GetRequiredService<IOptions<OutputEventCatalog>>().Value);
         var producerSection = configuration.GetSection("RabbitMQ:Producer");
@@ -34,9 +39,10 @@ public static class DependencyInjection
         services.Configure<RabbitMqServerSettings>(configuration.GetSection("RabbitMQ:Server"));
         services.AddOptions<RabbitMqSettings>()
             .Bind(configuration.GetSection("RabbitMQ"))
-            .PostConfigure(options =>
+            .PostConfigure<IServiceProvider>((options, provider) =>
             {
-                var legacy = configuration["RabbitMQ:Consumer:Exchange"];
+                var consumer = provider.GetService<IRabbitInputEventProvider>();
+                var legacy = consumer?.Exchange ?? configuration["RabbitMQ:Consumer:Exchange"];
                 if (!string.IsNullOrWhiteSpace(legacy) && !string.IsNullOrWhiteSpace(options.Exchange)
                     && !string.Equals(legacy, options.Exchange, StringComparison.Ordinal))
                 {
@@ -44,7 +50,7 @@ public static class DependencyInjection
                 }
 
                 options.Exchange ??= legacy;
-                options.ConnectionAttemptCount ??= configuration.GetValue<int?>("RabbitMQ:Consumer:ConnectionAttemptCount");
+                options.ConnectionAttemptCount ??= consumer?.ConnectionAttemptCount ?? configuration.GetValue<int?>("RabbitMQ:Consumer:ConnectionAttemptCount");
             });
         services.TryAddSingleton<IRabbitMqClient, RabbitMqClient>();
         services.TryAddSingleton<RabbitMqInitializationService>();

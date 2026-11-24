@@ -56,6 +56,7 @@ public class GenericProcessorTests
         Assert.Same(message, processor.Received);
         Assert.Equal(cancellation.Token, processor.Token);
         Assert.Null(provider.GetService<IIntegrationEventProcessor>());
+        Assert.DoesNotContain(services, descriptor => descriptor.ServiceType.Namespace?.StartsWith("Bss.Platform.RabbitMq", StringComparison.Ordinal) == true);
         var rabbit = provider.GetRequiredService<IOptions<RabbitMQOptions>>().Value;
         Assert.Equal("quorum", rabbit.QueueArguments.QueueType);
     }

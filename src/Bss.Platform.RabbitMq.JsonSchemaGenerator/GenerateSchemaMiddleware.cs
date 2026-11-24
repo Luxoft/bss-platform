@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-using NJsonSchema;
-using NJsonSchema.Generation;
+using Bss.Platform.RabbitMq.Schemas;
 
 namespace Bss.Platform.RabbitMq.JsonSchemaGenerator;
 
@@ -10,7 +9,7 @@ public class GenerateSchemaMiddleware(RequestDelegate next, string path, Diction
     public async Task InvokeAsync(HttpContext context)
     {
         if (context.Request.Method == "GET"
-            && context.Request.Path.Value.Equals(path, StringComparison.InvariantCultureIgnoreCase))
+            && string.Equals(context.Request.Path.Value, path, StringComparison.InvariantCultureIgnoreCase))
         {
             await this.GenerateSchema(context);
             return;
@@ -21,34 +20,10 @@ public class GenerateSchemaMiddleware(RequestDelegate next, string path, Diction
 
     private async Task GenerateSchema(HttpContext context)
     {
-        var settings = new SystemTextJsonSchemaGeneratorSettings
-        {
-            FlattenInheritanceHierarchy = true,
-            GenerateAbstractProperties = false,
-            AllowReferencesWithProperties = false
-        };
-        
-        var schemaContainer = new JsonSchema();
-        var appender = new JsonSchemaAppender(schemaContainer, new MappedNameGenerator(eventsDict));
-        var generator = new NJsonSchema.Generation.JsonSchemaGenerator(settings);
-
-        var jsonSchemas = eventsDict.Select(x => x.Value).Select(generator.Generate);
-        foreach (var schema in jsonSchemas)
-        {
-            appender.AppendSchema(schema, null);
-        }
+        var schemaContainer = new RabbitEventsSchemaGenerator().GenerateSchema(eventsDict);
 
         context.Response.StatusCode = 200;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsync(schemaContainer.ToJson());
     }
-}
-
-file class MappedNameGenerator(Dictionary<string, Type> eventsDict) : ITypeNameGenerator
-{
-    private readonly Dictionary<string, string> mapping = eventsDict.DistinctBy(x => x.Value)
-        .ToDictionary(x => x.Value.Name, x => x.Key);
-
-    public string Generate(JsonSchema schema, string? typeNameHint, IEnumerable<string> reservedTypeNames) =>
-        this.mapping.GetValueOrDefault(schema.Title ?? throw new("JsonSchema title is null"), schema.Title);
 }
