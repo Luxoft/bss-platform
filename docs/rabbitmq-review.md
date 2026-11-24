@@ -45,7 +45,7 @@
 
 ## 2. Общий лимит подключения применяется только к части подключений
 
-**Статус — решение согласовано, реализация ожидается.** Инициализация и новый publisher используют `RabbitMQ:ConnectionAttemptCount`, а consumer и dead-letter publisher продолжают читать `RabbitMQ:Consumer:ConnectionAttemptCount` напрямую. Если задать конечный лимит только в общем ключе, эти два пути могут повторять попытки бесконечно.
+**Статус — реализовано.** До исправления инициализация и новый publisher использовали `RabbitMQ:ConnectionAttemptCount`, а consumer и dead-letter publisher читали `RabbitMQ:Consumer:ConnectionAttemptCount` напрямую. Если конечный лимит был задан только общим ключом, эти два пути могли повторять попытки бесконечно.
 
 См. [подключение consumer](../src/Bss.Platform.RabbitMq.Consumer/BackgroundServices/RabbitMqBackgroundService.cs#L31) и [dead-letter publisher](../src/Bss.Platform.RabbitMq.Consumer/Services/DeadLetterProcessor.cs#L25).
 

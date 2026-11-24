@@ -178,4 +178,23 @@ public class InitializationTests
         using var provider = services.BuildServiceProvider();
         Assert.Equal("overridden", provider.GetRequiredService<IOptions<RabbitMqSettings>>().Value.Exchange);
     }
+
+    [Theory]
+    [InlineData(null, 4, 4)]
+    [InlineData(null, null, null)]
+    [InlineData("0", 4, 0)]
+    public void Connection_limit_prefers_common_setting_then_effective_consumer_options(string? common, int? legacy, int? expected)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["RabbitMQ:ConnectionAttemptCount"] = common,
+            ["RabbitMQ:Consumer:ConnectionAttemptCount"] = "9"
+        }).Build();
+        var services = new ServiceCollection();
+        services.AddPlatformRabbitMqClient(configuration).AddPlatformRabbitMqConsumer<Processor>(configuration);
+        services.PostConfigure<RabbitMqConsumerSettings>(x => x.ConnectionAttemptCount = legacy);
+        using var provider = services.BuildServiceProvider();
+
+        Assert.Equal(expected, provider.GetRequiredService<IOptions<RabbitMqSettings>>().Value.ConnectionAttemptCount);
+    }
 }

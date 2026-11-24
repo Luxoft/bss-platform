@@ -74,8 +74,10 @@ ensures initialization before publication.
 }
 ```
 
-`ConnectionAttemptCount` means retries after the initial attempt, five seconds apart. Null means
-retry indefinitely; cancellation propagates. The existing consumer setting supplies a fallback.
+`RabbitMQ:ConnectionAttemptCount` applies to initialization, consumption, event publishing and
+dead-letter publishing. It counts retries after the initial attempt, five seconds apart. `0` allows
+only the initial attempt. If the common value is null, the effective `Consumer:ConnectionAttemptCount`
+supplies the fallback. If both are null, connections retry until cancelled.
 The common `Exchange` falls back to the effective `Consumer:Exchange`, including programmatic
 consumer overrides. Conflicting values fail configuration validation. Multiple exchanges are
 outside scope; custom behavior can be supplied through options/services.

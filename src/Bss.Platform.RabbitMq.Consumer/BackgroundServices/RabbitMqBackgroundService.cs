@@ -17,6 +17,7 @@ internal class RabbitMqBackgroundService(
     RabbitMqInitializationService initialization,
     IRabbitMqConsumer consumer,
     IOptions<RabbitMqServerSettings> serverSettings,
+    IOptions<RabbitMqSettings> commonSettings,
     IOptions<RabbitMqConsumerSettings> consumerSettings,
     ILogger<RabbitMqBackgroundService> logger)
     : BackgroundService
@@ -31,7 +32,7 @@ internal class RabbitMqBackgroundService(
         {
             return;
         }
-        this.connection = await client.TryConnectAsync(consumerSettings.Value.ConnectionAttemptCount, stoppingToken);
+        this.connection = await client.TryConnectAsync(commonSettings.Value.ConnectionAttemptCount, stoppingToken);
         if (this.connection is null)
         {
             logger.LogInformation("Listening RabbitMQ events wasn't started");

@@ -51,7 +51,9 @@ public static class DependencyInjection
                 }
 
                 options.Exchange ??= legacy;
-                options.ConnectionAttemptCount ??= consumer?.ConnectionAttemptCount ?? configuration.GetValue<int?>("RabbitMQ:Consumer:ConnectionAttemptCount");
+                options.ConnectionAttemptCount ??= consumer is null
+                    ? configuration.GetValue<int?>("RabbitMQ:Consumer:ConnectionAttemptCount")
+                    : consumer.ConnectionAttemptCount;
             })
             .Validate(options => options.ConnectionAttemptCount is null or >= 0,
                 "RabbitMQ:ConnectionAttemptCount must be non-negative.");
