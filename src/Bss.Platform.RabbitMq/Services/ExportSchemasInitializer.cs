@@ -30,5 +30,16 @@ public class ExportSchemasInitializer(
 
     private RabbitSchemaSource Source => new(common.Value.Exchange!, schemas.Value.SourceQueueName ?? inputs?.QueueName);
     public Task InitializeAsync(IModel channel, CancellationToken cancellationToken) => sender.SendAsync(channel, types, this.Source, cancellationToken);
-    public Task ExecuteAsync(Func<CancellationToken, Task<IModel>> createChannel, CancellationToken cancellationToken) => sender.SendAsync(createChannel, types, this.Source, cancellationToken);
+    public async Task ExecuteAsync(Func<CancellationToken, Task<IModel>> createChannel, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await sender.SendAsync(createChannel, types, this.Source, cancellationToken);
+        }
+        catch (RabbitMqStartupConnectionException exception)
+        {
+            // The sender elected to propagate the failure under its own policy.
+            throw new InvalidOperationException(exception.Message, exception);
+        }
+    }
 }

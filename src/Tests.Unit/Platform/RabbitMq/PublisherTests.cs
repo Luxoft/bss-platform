@@ -143,6 +143,7 @@ public class PublisherTests
         using var publisher = new RabbitMqEventPublisher(new OutputEventCatalog().AddOutputEvent<RegisteredEvent>("Event"), client,
             new RabbitMqInitializationService(client, [], common), common, Options.Create(new RabbitMqProducerSettings()));
         var publications = Enumerable.Range(0, 5).Select(x => publisher.PublishAsync(new RegisteredEvent(x))).ToArray();
+        await client.Connecting.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(1, client.Connections);
         Assert.All(publications, task => Assert.False(task.IsCompleted));
         client.Ready.SetResult(connection);
@@ -274,11 +275,13 @@ public class PublisherTests
 
     private sealed class DelayedClient : IRabbitMqClient
     {
+        public TaskCompletionSource Connecting { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource<IConnection?> Ready { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int Connections { get; private set; }
         public Task<IConnection?> TryConnectAsync(int? attempts, CancellationToken token = default)
         {
             this.Connections++;
+            this.Connecting.TrySetResult();
             return this.Ready.Task.WaitAsync(token);
         }
     }

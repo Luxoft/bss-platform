@@ -27,7 +27,10 @@ internal class RabbitMqBackgroundService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await initialization.EnsureInitializedAsync(stoppingToken);
+        if (!await initialization.WaitForStartupAsync(stoppingToken))
+        {
+            return;
+        }
         this.connection = await client.TryConnectAsync(consumerSettings.Value.ConnectionAttemptCount, stoppingToken);
         if (this.connection is null)
         {

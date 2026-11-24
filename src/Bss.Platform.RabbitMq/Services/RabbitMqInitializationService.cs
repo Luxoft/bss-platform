@@ -24,7 +24,29 @@ public class RabbitMqInitializationService(
     {
         lock (this.sync)
         {
-            return this.initialization ??= this.InitializeAsync(cancellationToken);
+            return this.initialization ??= Task.Run(() => this.InitializeAsync(cancellationToken), cancellationToken);
+        }
+    }
+
+    public async Task<bool> WaitForStartupAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await this.StartAsync(cancellationToken);
+            return true;
+        }
+        catch (RabbitMqStartupConnectionException)
+        {
+            return false;
+        }
+    }
+
+    internal void ValidateConfiguration()
+    {
+        _ = options.Value;
+        foreach (var initializer in initializers)
+        {
+            _ = initializer.IsEnabled;
         }
     }
 
@@ -53,7 +75,7 @@ public class RabbitMqInitializationService(
         async Task<IModel> CreateChannelAsync(CancellationToken token)
         {
             connection ??= await client.TryConnectAsync(options.Value.ConnectionAttemptCount, token)
-                           ?? throw new InvalidOperationException("RabbitMQ initialization could not establish a connection.");
+                           ?? throw new RabbitMqStartupConnectionException();
             return connection.CreateModel();
         }
     }

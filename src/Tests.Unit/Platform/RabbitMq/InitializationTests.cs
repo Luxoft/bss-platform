@@ -10,6 +10,7 @@ using Bss.Platform.RabbitMq.Settings;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 using RabbitMQ.Client;
@@ -75,6 +76,39 @@ public class InitializationTests
         using var provider = services.BuildServiceProvider();
         await provider.GetRequiredService<RabbitMqInitializationService>().StartAsync(default);
         Assert.Equal(0, client.Connections);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Host_applies_startup_policy_when_broker_is_unavailable(bool throwOnFailure)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["RabbitMQ:Startup:ThrowOnFailure"] = throwOnFailure.ToString(),
+            ["RabbitMQ:ConnectionAttemptCount"] = "0"
+        }).Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var client = new FakeClient(null);
+        services.AddSingleton<IRabbitMqClient>(client);
+        services.AddSingleton<IRabbitInitializer>(new Initializer(0, []));
+        services.AddPlatformRabbitMqClient(configuration);
+        using var provider = services.BuildServiceProvider();
+        var host = provider.GetRequiredService<IHostedService>();
+
+        if (throwOnFailure)
+        {
+            await Assert.ThrowsAnyAsync<InvalidOperationException>(() => host.StartAsync(default));
+        }
+        else
+        {
+            await host.StartAsync(default);
+            await ((BackgroundService)host).ExecuteTask!;
+            Assert.False(await provider.GetRequiredService<RabbitMqInitializationService>().WaitForStartupAsync(default));
+        }
+
+        Assert.Equal(1, client.Connections);
     }
 
     [Fact]

@@ -10,7 +10,7 @@
 | Client with output contracts | Output-schema publication and configured destination queues/bindings |
 | CAP/Events | No new topology or schema publication; optional generic processor API only |
 
-Existing registrations remain available. Initializers run once, sequentially, before consuming.
+Existing registrations remain available. Initializers run sequentially before consuming.
 They use a temporary startup connection and separate channels. Existing raw publishing is unchanged;
 the new `IRabbitMqEventPublisher` checks declared types when explicitly used.
 All platform-owned queues default to durable quorum: input, output, optional dead-letter and
@@ -38,9 +38,10 @@ The catalog describes declared contracts; it does not validate or restrict your 
 `BasicPublish` calls. `IRabbitMqEventPublisher` enforces the catalog for its own calls. Bulk registration finds concrete,
 non-nested types assignable to the given base type. Explicit mappings are supported too.
 
-Run under the normal .NET hosted-service lifecycle. Without a host, call
-`RabbitMqInitializationService.EnsureInitializedAsync(token)` explicitly for raw publishing;
-`IRabbitMqEventPublisher` ensures initialization before its first publication.
+Run under the normal .NET hosted-service lifecycle. Raw publishing that depends on platform
+topology should await `RabbitMqInitializationService.EnsureInitializedAsync(token)` when
+initialization runs in the background or when there is no host. `IRabbitMqEventPublisher`
+ensures initialization before publication.
 
 ```json
 {
@@ -51,6 +52,7 @@ Run under the normal .NET hosted-service lifecycle. Without a host, call
     },
     "Exchange": "orders",
     "ConnectionAttemptCount": 3,
+    "Startup": { "ThrowOnFailure": false },
     "Producer": {
       "PublishConfirmationTimeout": "00:00:05",
       "DefaultExcludeOutputBindings": ["Orders.Internal*"],
@@ -77,6 +79,21 @@ retry indefinitely; cancellation propagates. The existing consumer setting suppl
 The common `Exchange` falls back to the effective `Consumer:Exchange`, including programmatic
 consumer overrides. Conflicting values fail configuration validation. Multiple exchanges are
 outside scope; custom behavior can be supplied through options/services.
+
+## Starting without RabbitMQ
+
+With `RabbitMQ:Startup:ThrowOnFailure` set to `false` (the default), the host starts while
+RabbitMQ initializes in the background. The consumer waits for topology before reading.
+If the connection retry limit is exhausted, the startup service logs the failure and the
+consumer remains stopped until restart. With `true`, the host waits for initialization and
+fails startup if the retry limit is exhausted. Set a finite `ConnectionAttemptCount` or a
+host startup timeout to bound that wait.
+
+Configuration validation still runs at startup. Schema publication retains its own
+`RabbitMQ:Schemas:ThrowOnFailure` setting. Broker errors during topology declaration and
+other initializer errors propagate to the host under its background-service error policy
+when startup runs in the background. Explicit publication reports initialization errors to
+the caller in both modes.
 
 ## Checked event publisher
 

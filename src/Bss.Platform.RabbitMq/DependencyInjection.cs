@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.TryAddSingleton<IOutputBindingsResolver, OutputBindingsResolver>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IRabbitInitializer, OutputQueuesInitializer>());
         services.Configure<RabbitMqServerSettings>(configuration.GetSection("RabbitMQ:Server"));
+        services.Configure<RabbitMqStartupSettings>(configuration.GetSection("RabbitMQ:Startup"));
         services.AddOptions<RabbitMqSettings>()
             .Bind(configuration.GetSection("RabbitMQ"))
             .PostConfigure<IServiceProvider>((options, provider) =>
@@ -51,7 +52,9 @@ public static class DependencyInjection
 
                 options.Exchange ??= legacy;
                 options.ConnectionAttemptCount ??= consumer?.ConnectionAttemptCount ?? configuration.GetValue<int?>("RabbitMQ:Consumer:ConnectionAttemptCount");
-            });
+            })
+            .Validate(options => options.ConnectionAttemptCount is null or >= 0,
+                "RabbitMQ:ConnectionAttemptCount must be non-negative.");
         services.TryAddSingleton<IRabbitMqClient, RabbitMqClient>();
         services.TryAddSingleton<IRabbitMqEventPublisher, RabbitMqEventPublisher>();
         services.TryAddSingleton<RabbitMqInitializationService>();
@@ -64,10 +67,4 @@ public static class DependencyInjection
         services.Configure(setup);
         return services;
     }
-}
-
-internal sealed class RabbitMqInitializationHost(RabbitMqInitializationService initialization) : IHostedService
-{
-    public Task StartAsync(CancellationToken cancellationToken) => initialization.EnsureInitializedAsync(cancellationToken);
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
