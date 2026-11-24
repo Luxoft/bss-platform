@@ -115,7 +115,7 @@ public class InitializationTests
         using var provider = services.BuildServiceProvider();
         Assert.Equal("legacy", provider.GetRequiredService<IOptions<RabbitMqSettings>>().Value.Exchange);
         services.RemoveRabbitMqInitializer<ConsumerTopologyInitializer>();
-        Assert.DoesNotContain(services, x => x.ServiceType == typeof(IRabbitInitializer));
+        Assert.DoesNotContain(services, x => x.ServiceType == typeof(IRabbitInitializer) && x.ImplementationType == typeof(ConsumerTopologyInitializer));
     }
 
     [Fact]

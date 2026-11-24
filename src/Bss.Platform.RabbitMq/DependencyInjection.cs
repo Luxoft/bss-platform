@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Bss.Platform.RabbitMq;
 
@@ -15,6 +16,21 @@ public static class DependencyInjection
     public static IServiceCollection AddPlatformRabbitMqClient(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddRabbitMqBase();
+        services.AddOptions<OutputEventCatalog>();
+        services.TryAddSingleton<IOutputEventCatalog>(sp => sp.GetRequiredService<IOptions<OutputEventCatalog>>().Value);
+        var producerSection = configuration.GetSection("RabbitMQ:Producer");
+        services.AddOptions<RabbitMqProducerSettings>().Bind(producerSection).Configure(settings =>
+        {
+            // The standard dictionary binder skips null/empty entries. Those entries mean
+            // "bind defaults" here, and an explicitly empty dictionary differs from absence.
+            if (producerSection.GetChildren().Any(x => x.Key.Equals(nameof(settings.SystemBindings), StringComparison.OrdinalIgnoreCase)))
+            {
+                settings.SystemBindings = producerSection.GetSection(nameof(settings.SystemBindings)).GetChildren()
+                    .ToDictionary(x => x.Key, x => x.Get<string[]>(), StringComparer.Ordinal);
+            }
+        });
+        services.TryAddSingleton<IOutputBindingsResolver, OutputBindingsResolver>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IRabbitInitializer, OutputQueuesInitializer>());
         services.Configure<RabbitMqServerSettings>(configuration.GetSection("RabbitMQ:Server"));
         services.AddOptions<RabbitMqSettings>()
             .Bind(configuration.GetSection("RabbitMQ"))
@@ -33,6 +49,12 @@ public static class DependencyInjection
         services.TryAddSingleton<IRabbitMqClient, RabbitMqClient>();
         services.TryAddSingleton<RabbitMqInitializationService>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, RabbitMqInitializationHost>());
+        return services;
+    }
+
+    public static IServiceCollection RegisterRabbitMqOutputEvents(this IServiceCollection services, Action<OutputEventCatalog> setup)
+    {
+        services.Configure(setup);
         return services;
     }
 }
