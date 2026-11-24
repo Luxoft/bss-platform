@@ -30,8 +30,27 @@ public static class DependencyInjection
     {
         services
             .AddSingleton<IIntegrationEventProcessor, TEventProcessor>()
-            .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelector>(x => new CapConsumerServiceSelector(x, eventsAssembly))
-            .AddScoped<IIntegrationEventPublisher, IntegrationEventPublisher>()
+            .AddSingleton<IConsumerServiceSelector, CapConsumerServiceSelector>(x => new CapConsumerServiceSelector(x, eventsAssembly));
+
+        return services.AddIntegrationEvents(setup);
+    }
+
+    public static IServiceCollection AddPlatformIntegrationEvents<TEventProcessor, TEvent>(
+        this IServiceCollection services,
+        Assembly eventsAssembly,
+        Action<IntegrationEventsOptions>? setup = null)
+        where TEventProcessor : class, IIntegrationEventProcessor<TEvent>
+    {
+        services
+            .AddSingleton<IIntegrationEventProcessor<TEvent>, TEventProcessor>()
+            .AddSingleton<IConsumerServiceSelector>(x => new CapConsumerServiceSelector<TEvent>(x, eventsAssembly));
+
+        return services.AddIntegrationEvents(setup);
+    }
+
+    private static IServiceCollection AddIntegrationEvents(this IServiceCollection services, Action<IntegrationEventsOptions>? setup)
+    {
+        services.AddScoped<IIntegrationEventPublisher, IntegrationEventPublisher>()
             .AddScoped<ICapTransaction>(
                 serviceProvider =>
                 {

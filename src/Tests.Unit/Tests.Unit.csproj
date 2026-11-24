@@ -4,6 +4,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Bss.Platform.Events\Bss.Platform.Events.csproj" />
         <PackageReference Include="FluentAssertions"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk"/>

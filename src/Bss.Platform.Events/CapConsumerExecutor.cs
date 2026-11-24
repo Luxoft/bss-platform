@@ -8,3 +8,9 @@ internal class CapConsumerExecutor<TEvent>(IIntegrationEventProcessor eventProce
 {
     public Task HandleAsync(TEvent @event, CancellationToken cancellationToken) => eventProcessor.ProcessAsync(@event, cancellationToken);
 }
+
+internal class CapConsumerExecutor<TEvent, TBase>(IIntegrationEventProcessor<TBase> eventProcessor)
+    where TEvent : TBase
+{
+    public Task HandleAsync(TEvent @event, CancellationToken cancellationToken) => eventProcessor.ProcessAsync(@event, cancellationToken);
+}
