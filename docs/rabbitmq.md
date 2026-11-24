@@ -97,6 +97,12 @@ other initializer errors propagate to the host under its background-service erro
 when startup runs in the background. Explicit publication reports initialization errors to
 the caller in both modes.
 
+Concurrent callers share the current initialization attempt and can cancel their own wait.
+The attempt continues until it succeeds, fails or the application stops. Successful initialization
+is reused. A later explicit initialization or publish call can retry failed topology setup.
+Custom initializers should tolerate being rerun after partial success. A subsequent attempt does
+not restart a stopped consumer.
+
 ## Checked event publisher
 
 `AddPlatformRabbitMqClient` registers `IRabbitMqEventPublisher` by default. Inject it to publish

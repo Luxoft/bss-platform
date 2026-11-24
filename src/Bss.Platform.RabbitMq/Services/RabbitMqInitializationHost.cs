@@ -17,8 +17,21 @@ internal sealed class RabbitMqInitializationHost(
         _ = server.Value;
         initialization.ValidateConfiguration();
         return startup.Value.ThrowOnFailure
-            ? initialization.StartAsync(cancellationToken)
+            ? this.StartRequiredAsync(cancellationToken)
             : base.StartAsync(cancellationToken);
+    }
+
+    private async Task StartRequiredAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await initialization.StartAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await initialization.StopAsync(cancellationToken);
+            throw;
+        }
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -32,5 +45,11 @@ internal sealed class RabbitMqInitializationHost(
         {
             logger.LogError(exception, "RabbitMQ topology initialization could not connect to the broker");
         }
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await base.StopAsync(cancellationToken);
+        await initialization.StopAsync(cancellationToken);
     }
 }

@@ -23,12 +23,22 @@ public class InitializationTests
 {
     public sealed class FakeClient(IConnection? connection) : IRabbitMqClient
     {
+        public IConnection? Connection { get; set; } = connection;
         public int Connections { get; private set; }
         public Task<IConnection?> TryConnectAsync(int? attempts, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested();
             this.Connections++;
-            return Task.FromResult(connection);
+            return Task.FromResult(this.Connection);
+        }
+    }
+
+    private sealed class WaitingInitializer(TaskCompletionSource entered, TaskCompletionSource finish) : IRabbitInitializer
+    {
+        public Task InitializeAsync(IModel channel, CancellationToken cancellationToken)
+        {
+            entered.SetResult();
+            return finish.Task.WaitAsync(cancellationToken);
         }
     }
 
@@ -137,6 +147,72 @@ public class InitializationTests
         var service = new RabbitMqInitializationService(new FakeClient(connection), [new Initializer(0, calls, true), new Initializer(1, calls)], Options.Create(new RabbitMqSettings()));
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartAsync(default));
         Assert.Equal(new[] { 0 }, calls);
+    }
+
+    [Fact]
+    public async Task Failed_startup_can_be_retried_explicitly_without_restarting_the_consumer()
+    {
+        var client = new FakeClient(null);
+        var calls = new List<int>();
+        using var service = new RabbitMqInitializationService(client, [new Initializer(0, calls)], Options.Create(new RabbitMqSettings()));
+        Assert.False(await service.WaitForStartupAsync(default));
+
+        var (model, _) = RecordingProxy<IModel>.Create();
+        var (connection, proxy) = RecordingProxy<IConnection>.Create();
+        proxy.Handler = (method, _) => method.Name == nameof(IConnection.CreateModel) ? model : null;
+        client.Connection = connection;
+        await service.EnsureInitializedAsync(default);
+        await service.EnsureInitializedAsync(default);
+
+        Assert.False(await service.WaitForStartupAsync(default));
+        Assert.Single(calls);
+        Assert.Equal(2, client.Connections);
+    }
+
+    [Fact]
+    public async Task Cancelling_one_wait_leaves_the_shared_attempt_running()
+    {
+        var (model, _) = RecordingProxy<IModel>.Create();
+        var (connection, proxy) = RecordingProxy<IConnection>.Create();
+        proxy.Handler = (method, _) => method.Name == nameof(IConnection.CreateModel) ? model : null;
+        var client = new FakeClient(connection);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var service = new RabbitMqInitializationService(client, [new WaitingInitializer(entered, finish)], Options.Create(new RabbitMqSettings()));
+        using var cancellation = new CancellationTokenSource();
+        var first = service.EnsureInitializedAsync(cancellation.Token);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var second = service.EnsureInitializedAsync(default);
+        await cancellation.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
+        Assert.False(second.IsCompleted);
+        finish.SetResult();
+        await second;
+        Assert.Equal(1, client.Connections);
+    }
+
+    [Fact]
+    public async Task Application_stopping_cancels_initialization_before_hosted_services_stop()
+    {
+        using var host = Host.CreateApplicationBuilder().Build();
+        var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+        var (model, _) = RecordingProxy<IModel>.Create();
+        var (connection, proxy) = RecordingProxy<IConnection>.Create();
+        proxy.Handler = (method, _) => method.Name == nameof(IConnection.CreateModel) ? model : null;
+        var client = new FakeClient(connection);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var service = new RabbitMqInitializationService(client, [new WaitingInitializer(entered, finish)],
+            Options.Create(new RabbitMqSettings()), lifetime);
+        var attempt = service.EnsureInitializedAsync(default);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        lifetime.StopApplication();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => attempt.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.ThrowsAny<OperationCanceledException>(() => { _ = service.EnsureInitializedAsync(default); });
+        Assert.Equal(1, client.Connections);
     }
 
     [Fact]
