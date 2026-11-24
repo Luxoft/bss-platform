@@ -60,14 +60,13 @@ public class RabbitMqEventPublisher(
         channel.BasicReturn += OnReturned;
         try
         {
-            token.ThrowIfCancellationRequested();
             channel.ConfirmSelect();
+            token.ThrowIfCancellationRequested();
             channel.BasicPublish(settings.Exchange, routingKey, true, properties, body);
             channel.WaitForConfirmsOrDie(timeout);
             var rejection = Volatile.Read(ref returned);
             if (rejection is not null)
                 throw new InvalidOperationException($"RabbitMQ returned event '{eventType.FullName}' on route '{routingKey}': {rejection.ReplyCode} {rejection.ReplyText}.");
-            token.ThrowIfCancellationRequested();
         }
         finally
         {

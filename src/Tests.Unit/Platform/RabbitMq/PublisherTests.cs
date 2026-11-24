@@ -173,6 +173,18 @@ public class PublisherTests
     }
 
     [Fact]
+    public async Task Cancellation_during_a_successful_confirmation_preserves_success()
+    {
+        using var cancellation = new CancellationTokenSource();
+        using var fixture = new Fixture { OnConfirmation = cancellation.Cancel };
+
+        await fixture.Publisher.PublishAsync(new RegisteredEvent(1), cancellation.Token);
+
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.Single(fixture.Channels.Single().Calls, x => x.Method == nameof(IModel.BasicPublish));
+    }
+
+    [Fact]
     public void Publisher_is_registered_by_default_and_can_be_replaced_before_platform_registration()
     {
         var services = new ServiceCollection();
@@ -198,6 +210,7 @@ public class PublisherTests
         public List<RecordingProxy<IBasicProperties>> Properties { get; } = [];
         public bool ReturnMessage { get; init; }
         public bool FailConfirmation { get; init; }
+        public Action? OnConfirmation { get; init; }
 
         public Fixture(bool fallback = false, Action<OutputEventCatalog>? configureCatalog = null, IOutputEventCatalog? catalog = null)
         {
@@ -237,6 +250,7 @@ public class PublisherTests
                         returned?.Invoke(channel, new BasicReturnEventArgs { ReplyCode = 312, ReplyText = "NO_ROUTE" });
                         break;
                     case nameof(IModel.WaitForConfirmsOrDie) when this.FailConfirmation: throw new IOException("confirmation failed");
+                    case nameof(IModel.WaitForConfirmsOrDie): this.OnConfirmation?.Invoke(); break;
                 }
                 return null;
             };
