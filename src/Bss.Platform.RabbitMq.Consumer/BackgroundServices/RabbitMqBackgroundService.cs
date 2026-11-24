@@ -1,6 +1,7 @@
 ﻿using Bss.Platform.RabbitMq.Consumer.Interfaces;
 using Bss.Platform.RabbitMq.Consumer.Settings;
 using Bss.Platform.RabbitMq.Interfaces;
+using Bss.Platform.RabbitMq.Services;
 using Bss.Platform.RabbitMq.Settings;
 
 using Microsoft.Extensions.Hosting;
@@ -13,7 +14,7 @@ namespace Bss.Platform.RabbitMq.Consumer.BackgroundServices;
 
 internal class RabbitMqBackgroundService(
     IRabbitMqClient client,
-    IEnumerable<IRabbitMqInitializer> initializers,
+    RabbitMqInitializationService initialization,
     IRabbitMqConsumer consumer,
     IOptions<RabbitMqServerSettings> serverSettings,
     IOptions<RabbitMqConsumerSettings> consumerSettings,
@@ -26,6 +27,7 @@ internal class RabbitMqBackgroundService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await initialization.EnsureInitializedAsync(stoppingToken);
         this.connection = await client.TryConnectAsync(consumerSettings.Value.ConnectionAttemptCount, stoppingToken);
         if (this.connection is null)
         {
@@ -34,11 +36,6 @@ internal class RabbitMqBackgroundService(
         }
 
         this.channel = this.connection!.CreateModel();
-        foreach (var initializer in initializers)
-        {
-            initializer.Initialize(this.channel);
-        }
-
         logger.LogInformation(
             "Listening RabbitMQ events has started on {Address}. Queue name is {Queue}. Consumer mode is {Mode}",
             serverSettings.Value.Address,

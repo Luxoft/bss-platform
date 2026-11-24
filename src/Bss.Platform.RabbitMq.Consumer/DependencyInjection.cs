@@ -1,12 +1,16 @@
 using Bss.Platform.RabbitMq.Consumer.BackgroundServices;
+using Bss.Platform.RabbitMq.Base;
 using Bss.Platform.RabbitMq.Consumer.Enums;
 using Bss.Platform.RabbitMq.Consumer.Interfaces;
 using Bss.Platform.RabbitMq.Consumer.Internal;
 using Bss.Platform.RabbitMq.Consumer.Services;
 using Bss.Platform.RabbitMq.Consumer.Settings;
+using Bss.Platform.RabbitMq.Settings;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Bss.Platform.RabbitMq.Consumer;
 
@@ -27,8 +31,21 @@ public static class DependencyInjection
         IConfiguration configuration)
         where TMessageProcessor : class, IRabbitMqMessageProcessor
     {
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IRabbitInitializer, ConsumerTopologyInitializer>());
+        services.AddOptions<RabbitMqSettings>().PostConfigure<IOptions<RabbitMqConsumerSettings>>((common, consumer) =>
+        {
+            var legacy = consumer.Value.Exchange;
+            if (!string.IsNullOrWhiteSpace(common.Exchange) && !string.IsNullOrWhiteSpace(legacy)
+                && !string.Equals(common.Exchange, legacy, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("RabbitMQ:Exchange and RabbitMQ:Consumer:Exchange must match.");
+            }
+
+            common.Exchange ??= legacy;
+            common.ConnectionAttemptCount ??= consumer.Value.ConnectionAttemptCount;
+        });
         var consumerSettingsSection = configuration.GetSection("RabbitMQ:Consumer");
-        if (consumerSettingsSection.Get<RabbitMqConsumerSettings>()!.Mode == ConsumerMode.MultipleActiveConsumers)
+        if ((consumerSettingsSection.Get<RabbitMqConsumerSettings>()?.Mode ?? ConsumerMode.MultipleActiveConsumers) == ConsumerMode.MultipleActiveConsumers)
         {
             services.AddSingleton<IRabbitMqConsumer, ConcurrentConsumer>();
         }

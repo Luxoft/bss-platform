@@ -15,7 +15,7 @@ public class RabbitMqClient(IOptions<RabbitMqServerSettings> options, ILogger<Ra
 {
     private const int RetryConnectDelay = 5000;
 
-    public Task<IConnection?> TryConnectAsync(int? attempts, CancellationToken token = default)
+    public async Task<IConnection?> TryConnectAsync(int? attempts, CancellationToken token = default)
     {
         var serverSettings = options.Value;
         var factory = new ConnectionFactory
@@ -32,12 +32,16 @@ public class RabbitMqClient(IOptions<RabbitMqServerSettings> options, ILogger<Ra
 
         try
         {
-            return policy.ExecuteAsync(_ => Task.FromResult(factory.CreateConnection()), token)!;
+            return await policy.ExecuteAsync(_ => Task.FromResult(factory.CreateConnection()), token);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             this.LogConnectionError(ex);
-            return Task.FromResult<IConnection?>(null);
+            return null;
         }
     }
 

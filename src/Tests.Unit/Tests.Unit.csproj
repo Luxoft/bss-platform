@@ -5,6 +5,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Bss.Platform.Events\Bss.Platform.Events.csproj" />
+        <ProjectReference Include="..\Bss.Platform.RabbitMq.Consumer\Bss.Platform.RabbitMq.Consumer.csproj" />
         <PackageReference Include="FluentAssertions"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk"/>
