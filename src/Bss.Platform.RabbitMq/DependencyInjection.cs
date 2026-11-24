@@ -53,6 +53,7 @@ public static class DependencyInjection
                 options.ConnectionAttemptCount ??= consumer?.ConnectionAttemptCount ?? configuration.GetValue<int?>("RabbitMQ:Consumer:ConnectionAttemptCount");
             });
         services.TryAddSingleton<IRabbitMqClient, RabbitMqClient>();
+        services.TryAddSingleton<IRabbitMqEventPublisher, RabbitMqEventPublisher>();
         services.TryAddSingleton<RabbitMqInitializationService>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, RabbitMqInitializationHost>());
         return services;

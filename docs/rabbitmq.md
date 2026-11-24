@@ -11,7 +11,8 @@
 | CAP/Events | No new topology or schema publication; optional generic processor API only |
 
 Existing registrations remain available. Initializers run once, sequentially, before consuming.
-They use a temporary startup connection and separate channels. Business publishing is unchanged.
+They use a temporary startup connection and separate channels. Existing raw publishing is unchanged;
+the new `IRabbitMqEventPublisher` checks declared types when explicitly used.
 All platform-owned queues default to durable quorum: input, output, optional dead-letter and
 documenter queues. An existing classic queue requires a matching custom queue policy or a separate
 migration; RabbitMQ cannot redeclare it as quorum.
@@ -34,11 +35,12 @@ services.AddPlatformRabbitMqClient(configuration)
 ```
 
 The catalog describes declared contracts; it does not validate or restrict your existing
-`BasicPublish` calls. No business-event publisher is added. Bulk registration finds concrete,
+`BasicPublish` calls. `IRabbitMqEventPublisher` enforces the catalog for its own calls. Bulk registration finds concrete,
 non-nested types assignable to the given base type. Explicit mappings are supported too.
 
 Run under the normal .NET hosted-service lifecycle. Without a host, call
-`RabbitMqInitializationService.EnsureInitializedAsync(token)` explicitly.
+`RabbitMqInitializationService.EnsureInitializedAsync(token)` explicitly for raw publishing;
+`IRabbitMqEventPublisher` ensures initialization before its first publication.
 
 ```json
 {
@@ -50,6 +52,7 @@ Run under the normal .NET hosted-service lifecycle. Without a host, call
     "Exchange": "orders",
     "ConnectionAttemptCount": 3,
     "Producer": {
+      "PublishConfirmationTimeout": "00:00:05",
       "DefaultExcludeOutputBindings": ["Orders.Internal*"],
       "SystemBindings": {
         "ToBilling": null,
@@ -74,6 +77,63 @@ retry indefinitely; cancellation propagates. The existing consumer setting suppl
 The common `Exchange` falls back to the effective `Consumer:Exchange`, including programmatic
 consumer overrides. Conflicting values fail configuration validation. Multiple exchanges are
 outside scope; custom behavior can be supplied through options/services.
+
+## Checked event publisher
+
+`AddPlatformRabbitMqClient` registers `IRabbitMqEventPublisher` by default. Inject it to publish
+declared events using the catalog routing key:
+
+```csharp
+using Bss.Platform.RabbitMq.Interfaces;
+
+await provider.GetRequiredService<IRabbitMqEventPublisher>()
+    .PublishAsync(new OrderCreated(/* values */), cancellationToken);
+```
+
+Resolution uses the exact runtime type, including when the variable is declared as a base type.
+The publisher builds an immutable type-to-routing-keys index once at construction, after contract
+registration. Lookups do not enumerate the catalog or allocate routing arrays per publication.
+Runtime mutation of the catalog is not reflected in an existing publisher instance.
+An unregistered subtype is not authorized by a base-type registration. Unregistered types throw
+`InvalidOperationException` before initialization or broker operations. If a type has several
+registered aliases, publication throws rather than choosing a route or sending multiple messages.
+
+The default implementation is `RabbitMqEventPublisher`. Override its fallback to support other
+types without changing registration or schemas:
+
+```csharp
+using Bss.Platform.RabbitMq;
+using Bss.Platform.RabbitMq.Interfaces;
+using Bss.Platform.RabbitMq.Services;
+using Bss.Platform.RabbitMq.Settings;
+using Microsoft.Extensions.Options;
+
+public class NameBasedPublisher(
+    IOutputEventCatalog catalog,
+    IRabbitMqClient client,
+    RabbitMqInitializationService initialization,
+    IOptions<RabbitMqSettings> options,
+    IOptions<RabbitMqProducerSettings> producerOptions)
+    : RabbitMqEventPublisher(catalog, client, initialization, options, producerOptions)
+{
+    protected override string ResolveUnregisteredRoutingKey(Type eventType) => eventType.Name;
+}
+
+// Register before AddPlatformRabbitMqClient, or remove the default registration first:
+services.AddSingleton<IRabbitMqEventPublisher, NameBasedPublisher>();
+```
+
+`ResolveRoutingKey` is also virtual for explicit alias selection, and `Serialize` can customize
+the payload. Fallback routing does not automatically declare contracts, bindings or schemas.
+
+The publisher serializes the runtime object as JSON, sends persistent messages and waits for
+publisher confirmation using `Producer:PublishConfirmationTimeout` (default five seconds).
+Mandatory returns, connection failures and confirmation failures propagate to the caller; schema
+`ThrowOnFailure` has no effect on business publication. Failed/uncertain publishes are not retried
+automatically. Recipient queues must be configured or otherwise provided for the chosen route.
+
+The singleton publisher reuses its connection and opens a dedicated channel per publication,
+allowing concurrent calls. DI disposal closes the retained connection. CAP's publisher is unchanged.
 
 ## System selection
 

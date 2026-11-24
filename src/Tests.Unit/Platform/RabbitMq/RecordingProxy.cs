@@ -17,7 +17,7 @@ public class RecordingProxy<T> : DispatchProxy where T : class
     {
         var method = targetMethod!;
         var arguments = args ?? [];
-        this.Calls.Add((method.Name, arguments));
+        lock (this.Calls) this.Calls.Add((method.Name, arguments));
         if (this.Handler is not null)
         {
             return this.Handler(method, arguments);

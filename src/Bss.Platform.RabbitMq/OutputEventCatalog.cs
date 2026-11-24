@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace Bss.Platform.RabbitMq;
 
-/// <summary>Declared output contracts. Does not restrict business-event publication.</summary>
+/// <summary>Declared contracts for bindings, schemas and the platform event publisher.</summary>
 public class OutputEventCatalog : IOutputEventCatalog
 {
     private readonly Dictionary<string, Type> events = new(StringComparer.Ordinal);
