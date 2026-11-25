@@ -39,9 +39,9 @@ The catalog describes declared contracts; it does not validate or restrict your 
 non-nested types assignable to the given base type. Explicit mappings are supported too.
 
 Run under the normal .NET hosted-service lifecycle. Raw publishing that depends on platform
-topology should await `RabbitMqInitializationService.EnsureInitializedAsync(token)` when
-initialization runs in the background or when there is no host. `IRabbitMqEventPublisher`
-ensures initialization before publication.
+topology should await `RabbitMqInitializationService.EnsureInitializedAsync(token)` when there
+is no host or when host startup continued after a broker connection failure.
+`IRabbitMqEventPublisher` ensures initialization before publication.
 
 ```json
 {
@@ -74,7 +74,7 @@ ensures initialization before publication.
 }
 ```
 
-`RabbitMQ:ConnectionAttemptCount` applies to initialization, consumption, event publishing and
+`RabbitMQ:ConnectionAttemptCount` applies to consumption, event publishing and
 dead-letter publishing. It counts retries after the initial attempt, five seconds apart. `0` allows
 only the initial attempt. If the common value is null, the effective `Consumer:ConnectionAttemptCount`
 supplies the fallback. If both are null, connections retry until cancelled.
@@ -84,18 +84,19 @@ outside scope; custom behavior can be supplied through options/services.
 
 ## Starting without RabbitMQ
 
-With `RabbitMQ:Startup:ThrowOnFailure` set to `false` (the default), the host starts while
-RabbitMQ initializes in the background. The consumer waits for topology before reading.
-If the connection retry limit is exhausted, the startup service logs the failure and the
-consumer remains stopped until restart. With `true`, the host waits for initialization and
-fails startup if the retry limit is exhausted. Set a finite `ConnectionAttemptCount` or a
-host startup timeout to bound that wait.
+The host waits for RabbitMQ topology initialization in both modes. Every initialization attempt
+uses at most five connection attempts, including the initial connection, regardless of
+`ConnectionAttemptCount`. The built-in client logs each failed connection at Error level and
+waits five seconds between attempts. The wait can include up to 20 seconds of retry delays
+plus the time spent connecting.
+
+If all five connections fail, `RabbitMQ:Startup:ThrowOnFailure = false` (the default) allows
+the host to finish starting and the consumer stays stopped until restart. With `true`, the
+connection failure aborts startup.
 
 Configuration validation still runs at startup. Schema publication retains its own
-`RabbitMQ:Schemas:ThrowOnFailure` setting. Broker errors during topology declaration and
-other initializer errors propagate to the host under its background-service error policy
-when startup runs in the background. Explicit publication reports initialization errors to
-the caller in both modes.
+`RabbitMQ:Schemas:ThrowOnFailure` setting. Errors during mandatory topology declaration
+abort startup in both modes. Explicit publication reports initialization errors to the caller.
 
 Concurrent callers share the current initialization attempt and can cancel their own wait.
 The attempt continues until it succeeds, fails or the application stops. Successful initialization

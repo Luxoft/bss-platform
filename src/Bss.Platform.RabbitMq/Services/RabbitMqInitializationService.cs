@@ -14,8 +14,9 @@ public class RabbitMqInitializationService(
     IRabbitMqClient client,
     IEnumerable<IRabbitInitializer> initializers,
     IOptions<RabbitMqSettings> options,
-    IHostApplicationLifetime? applicationLifetime = null) : IHostedService, IDisposable
+    IHostApplicationLifetime? applicationLifetime = null) : IDisposable
 {
+    private const int ConnectionRetries = 4; // Five attempts including the first connection.
     private readonly object sync = new();
     private readonly CancellationTokenSource lifetime = applicationLifetime is null
         ? new CancellationTokenSource()
@@ -105,7 +106,7 @@ public class RabbitMqInitializationService(
 
         async Task<IModel> CreateChannelAsync(CancellationToken token)
         {
-            connection ??= await client.TryConnectAsync(options.Value.ConnectionAttemptCount, token)
+            connection ??= await client.TryConnectAsync(ConnectionRetries, token)
                            ?? throw new RabbitMqStartupConnectionException();
             return connection.CreateModel();
         }

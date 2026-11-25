@@ -10,22 +10,20 @@ internal sealed class RabbitMqInitializationHost(
     RabbitMqInitializationService initialization,
     IOptions<RabbitMqStartupSettings> startup,
     IOptions<RabbitMqServerSettings> server,
-    ILogger<RabbitMqInitializationHost> logger) : BackgroundService
+    ILogger<RabbitMqInitializationHost> logger) : IHostedService
 {
-    public override Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         _ = server.Value;
         initialization.ValidateConfiguration();
-        return startup.Value.ThrowOnFailure
-            ? this.StartRequiredAsync(cancellationToken)
-            : base.StartAsync(cancellationToken);
-    }
-
-    private async Task StartRequiredAsync(CancellationToken cancellationToken)
-    {
+        var throwOnFailure = startup.Value.ThrowOnFailure;
         try
         {
             await initialization.StartAsync(cancellationToken);
+        }
+        catch (RabbitMqStartupConnectionException exception) when (!throwOnFailure)
+        {
+            logger.LogError(exception, "RabbitMQ topology initialization could not connect to the broker");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -34,22 +32,5 @@ internal sealed class RabbitMqInitializationHost(
         }
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        await Task.Yield();
-        try
-        {
-            await initialization.StartAsync(stoppingToken);
-        }
-        catch (RabbitMqStartupConnectionException exception)
-        {
-            logger.LogError(exception, "RabbitMQ topology initialization could not connect to the broker");
-        }
-    }
-
-    public override async Task StopAsync(CancellationToken cancellationToken)
-    {
-        await base.StopAsync(cancellationToken);
-        await initialization.StopAsync(cancellationToken);
-    }
+    public Task StopAsync(CancellationToken cancellationToken) => initialization.StopAsync(cancellationToken);
 }

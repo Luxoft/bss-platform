@@ -25,10 +25,12 @@ public class InitializationTests
     {
         public IConnection? Connection { get; set; } = connection;
         public int Connections { get; private set; }
+        public int? LastRetryLimit { get; private set; }
         public Task<IConnection?> TryConnectAsync(int? attempts, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested();
             this.Connections++;
+            this.LastRetryLimit = attempts;
             return Task.FromResult(this.Connection);
         }
     }
@@ -114,11 +116,11 @@ public class InitializationTests
         else
         {
             await host.StartAsync(default);
-            await ((BackgroundService)host).ExecuteTask!;
-            Assert.False(await provider.GetRequiredService<RabbitMqInitializationService>().WaitForStartupAsync(default));
         }
 
         Assert.Equal(1, client.Connections);
+        Assert.Equal(4, client.LastRetryLimit);
+        Assert.False(await provider.GetRequiredService<RabbitMqInitializationService>().WaitForStartupAsync(default));
     }
 
     [Fact]
