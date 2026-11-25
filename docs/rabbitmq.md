@@ -72,9 +72,10 @@ is no host or when host startup continued after a broker connection failure.
 ```
 
 `RabbitMQ:ConnectionAttemptCount` applies to consumption, event publishing and
-dead-letter publishing. It counts retries after the initial attempt, five seconds apart. `0` allows
-only the initial attempt. If the common value is null, the effective `Consumer:ConnectionAttemptCount`
-supplies the fallback. If both are null, connections retry until cancelled.
+dead-letter publishing. It counts retries after the initial attempt in a connection batch,
+five seconds apart. `0` makes each batch a single attempt. If the common value is null,
+the effective `Consumer:ConnectionAttemptCount` supplies the fallback. If both are null,
+connections retry until cancelled.
 The common `Exchange` falls back to the effective `Consumer:Exchange`, including programmatic
 consumer overrides. Conflicting values fail configuration validation. Multiple exchanges are
 outside scope; custom behavior can be supplied through options/services.
@@ -88,8 +89,10 @@ waits five seconds between attempts. The wait can include up to 20 seconds of re
 plus the time spent connecting.
 
 If all five connections fail, `RabbitMQ:RequireBrokerOnStartup = false` (the default) allows
-the host to finish starting and the consumer stays stopped until restart. With `true`, the
-connection failure aborts startup.
+the host to finish starting. The consumer retries topology initialization in the background
+and starts reading once it can connect. Failed background batches are five seconds apart.
+Each batch for the consumer connection uses `ConnectionAttemptCount`. With `true`, the
+initialization connection failure aborts startup.
 
 Configuration validation for mandatory topology still runs at startup. Errors during mandatory
 topology declaration abort startup in both modes and stop later initializers. The flag is checked
@@ -100,8 +103,8 @@ and permits later initializers to run. Explicit publication reports initializati
 Concurrent callers share the current initialization attempt and can cancel their own wait.
 The attempt continues until it succeeds, fails or the application stops. Successful initialization
 is reused. A later explicit initialization or publish call can retry failed topology setup.
-Custom initializers should tolerate being rerun after partial success. A subsequent attempt does
-not restart a stopped consumer.
+Custom initializers should tolerate being rerun after partial success. The consumer shares
+these initialization attempts with publishers.
 
 ## Checked event publisher
 

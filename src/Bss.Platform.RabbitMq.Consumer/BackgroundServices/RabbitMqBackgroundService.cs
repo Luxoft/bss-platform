@@ -28,25 +28,36 @@ internal class RabbitMqBackgroundService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var settings = commonSettings.Value;
         if (!await initialization.WaitForStartupAsync(stoppingToken))
         {
-            return;
-        }
-        this.connection = await client.TryConnectAsync(commonSettings.Value.ConnectionAttemptCount, stoppingToken);
-        if (this.connection is null)
-        {
-            logger.LogInformation("Listening RabbitMQ events wasn't started");
-            return;
+            if (settings.RequireBrokerOnStartup)
+            {
+                return;
+            }
+
+            await initialization.WaitForInitializationAsync(stoppingToken);
         }
 
-        this.channel = this.connection!.CreateModel();
+        while ((this.connection = await client.TryConnectAsync(settings.ConnectionAttemptCount, stoppingToken)) is null)
+        {
+            if (settings.RequireBrokerOnStartup)
+            {
+                logger.LogInformation("Listening RabbitMQ events wasn't started");
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        }
+
+        this.channel = this.connection.CreateModel();
         logger.LogInformation(
             "Listening RabbitMQ events has started on {Address}. Queue name is {Queue}. Consumer mode is {Mode}",
             serverSettings.Value.Address,
             consumerSettings.Value.Queue,
             consumerSettings.Value.Mode);
 
-        await consumer.ConsumeAsync(this.channel!, stoppingToken);
+        await consumer.ConsumeAsync(this.channel, stoppingToken);
     }
 
     public override void Dispose()

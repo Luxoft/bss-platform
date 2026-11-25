@@ -161,7 +161,7 @@ public class InitializationTests
     }
 
     [Fact]
-    public async Task Failed_startup_can_be_retried_explicitly_without_restarting_the_consumer()
+    public async Task Failed_startup_can_be_retried_explicitly_without_changing_the_startup_result()
     {
         var client = new FakeClient(null);
         var calls = new List<int>();
@@ -178,6 +178,59 @@ public class InitializationTests
         Assert.False(await service.WaitForStartupAsync(default));
         Assert.Single(calls);
         Assert.Equal(2, client.Connections);
+    }
+
+    [Fact]
+    public async Task Consumer_starts_after_optional_topology_failure_when_broker_returns()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["RabbitMQ:Exchange"] = "events",
+            ["RabbitMQ:Server:Host"] = "localhost",
+            ["RabbitMQ:Consumer:Queue"] = "input"
+        }).Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var client = new FakeClient(null);
+        services.AddSingleton<IRabbitMqClient>(client);
+        services.AddPlatformRabbitMqClient(configuration).AddPlatformRabbitMqConsumer<Processor>(configuration);
+        var consumer = new RecordingConsumer();
+        services.AddSingleton<IRabbitMqConsumer>(consumer);
+        using var provider = services.BuildServiceProvider();
+        var hostedServices = provider.GetServices<IHostedService>().ToArray();
+        var topologyHost = Assert.Single(hostedServices, service => service is not BackgroundService);
+        var consumerHost = Assert.Single(hostedServices.OfType<BackgroundService>());
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await topologyHost.StartAsync(deadline.Token);
+
+        var (model, modelProxy) = RecordingProxy<IModel>.Create();
+        var (connection, connectionProxy) = RecordingProxy<IConnection>.Create();
+        connectionProxy.Handler = (method, _) => method.Name == nameof(IConnection.CreateModel) ? model : null;
+        client.Connection = connection;
+        await consumerHost.StartAsync(deadline.Token);
+
+        var completed = await Task.WhenAny(consumer.Started.Task, consumerHost.ExecuteTask!).WaitAsync(deadline.Token);
+        await completed;
+        Assert.Same(consumer.Started.Task, completed);
+        Assert.Same(model, await consumer.Started.Task);
+        Assert.Contains(modelProxy.Calls, call => call.Method == nameof(IModel.QueueDeclare));
+        await consumerHost.StopAsync(deadline.Token);
+        await topologyHost.StopAsync(deadline.Token);
+    }
+
+    private sealed class RecordingConsumer : IRabbitMqConsumer
+    {
+        public TaskCompletionSource<IModel> Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task ConsumeAsync(IModel channel, CancellationToken token)
+        {
+            this.Started.SetResult(channel);
+            return Task.Delay(Timeout.InfiniteTimeSpan, token);
+        }
+
+        public void Dispose()
+        {
+        }
     }
 
     [Fact]

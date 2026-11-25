@@ -73,6 +73,23 @@ public class RabbitMqInitializationService(
         }
     }
 
+    /// <summary>Waits for topology initialization, retrying when the broker cannot be reached.</summary>
+    public async Task WaitForInitializationAsync(CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            try
+            {
+                await this.EnsureInitializedAsync(cancellationToken);
+                return;
+            }
+            catch (RabbitMqStartupConnectionException)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+            }
+        }
+    }
+
     internal void ValidateConfiguration()
     {
         _ = options.Value;
