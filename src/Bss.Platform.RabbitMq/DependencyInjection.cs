@@ -37,7 +37,6 @@ public static class DependencyInjection
         services.TryAddSingleton<IOutputBindingsResolver, OutputBindingsResolver>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IRabbitInitializer, OutputQueuesInitializer>());
         services.Configure<RabbitMqServerSettings>(configuration.GetSection("RabbitMQ:Server"));
-        services.Configure<RabbitMqStartupSettings>(configuration.GetSection("RabbitMQ:Startup"));
         services.AddOptions<RabbitMqSettings>()
             .Bind(configuration.GetSection("RabbitMQ"))
             .PostConfigure<IServiceProvider>((options, provider) =>

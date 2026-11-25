@@ -16,8 +16,7 @@ public class RabbitMqEventPublisher(
     IOutputEventCatalog catalog,
     IRabbitMqClient client,
     RabbitMqInitializationService initialization,
-    IOptions<RabbitMqSettings> options,
-    IOptions<RabbitMqProducerSettings> producerOptions) : IRabbitMqEventPublisher, IDisposable
+    IOptions<RabbitMqSettings> options) : IRabbitMqEventPublisher, IDisposable
 {
     private readonly FrozenDictionary<Type, string[]> routesByType = catalog.Events
         .GroupBy(x => x.Value)
@@ -27,6 +26,8 @@ public class RabbitMqEventPublisher(
     private readonly CancellationTokenSource lifetime = new();
     private IConnection? connection;
     private int disposed;
+
+    protected virtual TimeSpan ConfirmationTimeout => TimeSpan.FromSeconds(5);
 
     public async Task PublishAsync(object @event, CancellationToken cancellationToken = default)
     {
@@ -42,9 +43,9 @@ public class RabbitMqEventPublisher(
         var settings = options.Value;
         if (string.IsNullOrWhiteSpace(settings.Exchange))
             throw new InvalidOperationException("RabbitMQ:Exchange is required for event publication.");
-        var timeout = producerOptions.Value.PublishConfirmationTimeout;
+        var timeout = this.ConfirmationTimeout;
         if (timeout <= TimeSpan.Zero)
-            throw new InvalidOperationException("RabbitMQ:Producer:PublishConfirmationTimeout must be positive.");
+            throw new InvalidOperationException("ConfirmationTimeout must be positive.");
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.lifetime.Token);
         var token = linked.Token;

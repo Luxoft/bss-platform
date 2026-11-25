@@ -13,7 +13,7 @@ public static class DependencyInjection
         services.AddRabbitMqBase();
         var options = services.AddOptions<RabbitSchemaOptions>()
             .Validate(x => !x.Enabled || (!string.IsNullOrWhiteSpace(x.QueueName) && !string.IsNullOrWhiteSpace(x.RoutingKey)
-                && !string.IsNullOrWhiteSpace(x.SystemName) && x.ConfirmationTimeout > TimeSpan.Zero), "Schema destination, system name and confirmation timeout must be valid.");
+                && !string.IsNullOrWhiteSpace(x.SystemName)), "Schema destination and system name must be valid.");
         if (setup is not null) options.Configure(setup);
         services.TryAddSingleton<RabbitEventsSchemaGenerator>();
         services.TryAddSingleton<RabbitSchemaMessageBuilder>();

@@ -52,9 +52,8 @@ is no host or when host startup continued after a broker connection failure.
     },
     "Exchange": "orders",
     "ConnectionAttemptCount": 3,
-    "Startup": { "ThrowOnFailure": false },
+    "RequireBrokerOnStartup": false,
     "Producer": {
-      "PublishConfirmationTimeout": "00:00:05",
       "DefaultExcludeOutputBindings": ["Orders.Internal*"],
       "SystemBindings": {
         "ToBilling": null,
@@ -64,11 +63,9 @@ is no host or when host startup continued after a broker connection failure.
     },
     "Schemas": {
       "Enabled": true,
-      "ThrowOnFailure": false,
       "SystemName": "Orders",
       "QueueName": "ToDocumenter",
-      "RoutingKey": "RabbitEventSchemas",
-      "ConfirmationTimeout": "00:00:05"
+      "RoutingKey": "RabbitEventSchemas"
     }
   }
 }
@@ -90,13 +87,15 @@ uses at most five connection attempts, including the initial connection, regardl
 waits five seconds between attempts. The wait can include up to 20 seconds of retry delays
 plus the time spent connecting.
 
-If all five connections fail, `RabbitMQ:Startup:ThrowOnFailure = false` (the default) allows
+If all five connections fail, `RabbitMQ:RequireBrokerOnStartup = false` (the default) allows
 the host to finish starting and the consumer stays stopped until restart. With `true`, the
 connection failure aborts startup.
 
-Configuration validation still runs at startup. Schema publication retains its own
-`RabbitMQ:Schemas:ThrowOnFailure` setting. Errors during mandatory topology declaration
-abort startup in both modes. Explicit publication reports initialization errors to the caller.
+Configuration validation for mandatory topology still runs at startup. Errors during mandatory
+topology declaration abort startup in both modes and stop later initializers. The flag is checked
+by the startup host, outside the initializer loop; it does not control runtime publication errors.
+Platform schema export logs and suppresses its own errors, including invalid schema configuration,
+and permits later initializers to run. Explicit publication reports initialization errors to the caller.
 
 Concurrent callers share the current initialization attempt and can cancel their own wait.
 The attempt continues until it succeeds, fails or the application stops. Successful initialization
@@ -138,9 +137,8 @@ public class NameBasedPublisher(
     IOutputEventCatalog catalog,
     IRabbitMqClient client,
     RabbitMqInitializationService initialization,
-    IOptions<RabbitMqSettings> options,
-    IOptions<RabbitMqProducerSettings> producerOptions)
-    : RabbitMqEventPublisher(catalog, client, initialization, options, producerOptions)
+    IOptions<RabbitMqSettings> options)
+    : RabbitMqEventPublisher(catalog, client, initialization, options)
 {
     protected override string ResolveUnregisteredRoutingKey(Type eventType) => eventType.Name;
 }
@@ -153,9 +151,10 @@ services.AddSingleton<IRabbitMqEventPublisher, NameBasedPublisher>();
 the payload. Fallback routing does not automatically declare contracts, bindings or schemas.
 
 The publisher serializes the runtime object as JSON, sends persistent messages and waits for
-publisher confirmation using `Producer:PublishConfirmationTimeout` (default five seconds).
-Mandatory returns, connection failures and confirmation failures propagate to the caller; schema
-`ThrowOnFailure` has no effect on business publication. Failed/uncertain publishes are not retried
+publisher confirmation for up to five seconds. Override the protected `ConfirmationTimeout` property
+in a derived `RabbitMqEventPublisher` to change this limit and register it through DI.
+Mandatory returns, connection failures and confirmation failures propagate to the caller.
+Failed/uncertain publishes are not retried
 automatically. Recipient queues must be configured or otherwise provided for the chosen route.
 
 The singleton publisher reuses its connection and opens a dedicated channel per publication,
@@ -217,8 +216,15 @@ duplicate detection; it does not establish version ordering or prevent stale upd
 
 The sender declares the exchange, destination queue and binding, enables publisher confirms,
 publishes persistent JSON and waits for confirmation. Schema generation, connection and publication
-errors are logged/suppressed by default; `ThrowOnFailure = true` propagates them. Cancellation and
-invalid configuration are not suppressed. Required business topology failures stop startup.
+errors propagate to the caller of `IRabbitSchemaSender`, including configuration errors.
+The platform's `ExportSchemasInitializer` catches and logs schema errors during enablement and
+sending, so they do not abort startup or stop later initializers. Shutdown cancellation still
+propagates. Required business topology failures stop startup.
+
+Confirmation waits default to five seconds in both sender and event publisher. There are no timeout
+options or configuration keys. Override the protected `ConfirmationTimeout` property in a derived
+`RabbitSchemaSender` or `RabbitMqEventPublisher` and replace that service through DI if needed.
+This limit bounds broker confirmation waiting, not connection attempts or recipient processing.
 
 The existing HTTP middleware and `ProducedEventTypes` API remain, using shared schema generation.
 

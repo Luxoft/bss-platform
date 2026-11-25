@@ -15,6 +15,8 @@ using Bss.Platform.RabbitMq.Settings;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using RabbitMQ.Client;
@@ -91,7 +93,7 @@ public class SchemaTests
     public async Task Standalone_sender_prepares_destination_and_confirms_publication_without_platform_client()
     {
         var services = new ServiceCollection();
-        services.AddRabbitMqSchemas(x => { x.QueueName = "Docs"; x.RoutingKey = "Schemas"; x.SystemName = "App"; x.ThrowOnFailure = true; });
+        services.AddRabbitMqSchemas(x => { x.QueueName = "Docs"; x.RoutingKey = "Schemas"; x.SystemName = "App"; });
         using var provider = services.BuildServiceProvider();
         Assert.Null(provider.GetService<IRabbitMqClient>());
         var (channel, proxy) = RecordingProxy<IModel>.Create();
@@ -108,24 +110,24 @@ public class SchemaTests
         Assert.Equal(JsonValueKind.Null, body.RootElement.GetProperty("queue").ValueKind);
         Assert.Equal("App", body.RootElement.GetProperty("systemName").GetString());
         Assert.Contains(proxy.Calls, x => x.Method == nameof(IModel.ConfirmSelect));
-        Assert.Contains(proxy.Calls, x => x.Method == nameof(IModel.WaitForConfirmsOrDie));
+        Assert.Equal(TimeSpan.FromSeconds(5), Assert.Single(proxy.Calls,
+            x => x.Method == nameof(IModel.WaitForConfirmsOrDie)).Arguments[0]);
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Schema_connection_errors_follow_sender_failure_policy(bool throwOnFailure)
+    public async Task Platform_schema_connection_errors_do_not_fail_startup(bool requireBroker)
     {
         var services = new ServiceCollection();
+        services.AddLogging();
         services.AddPlatformRabbitMqClient(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["RabbitMQ:Exchange"] = "events" }).Build());
         services.RegisterRabbitMqOutputEvents(x => x.AddOutputEvent<Event>("Event"));
         services.AddSingleton<IRabbitMqClient>(new InitializationTests.FakeClient(null));
         services.Configure<RabbitMqSettings>(x => x.ConnectionAttemptCount = 0);
-        services.Configure<RabbitSchemaOptions>(x => x.ThrowOnFailure = throwOnFailure);
+        services.Configure<RabbitMqSettings>(x => x.RequireBrokerOnStartup = requireBroker);
         using var provider = services.BuildServiceProvider();
-        var task = provider.GetRequiredService<RabbitMqInitializationService>().StartAsync(default);
-        if (throwOnFailure) await Assert.ThrowsAsync<InvalidOperationException>(() => task);
-        else await task;
+        await provider.GetRequiredService<IHostedService>().StartAsync(default);
     }
 
     [Fact]
@@ -139,12 +141,123 @@ public class SchemaTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Publication_errors_follow_failure_policy(bool throwOnFailure)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task Cancellation_before_publish_prevents_send_but_successful_confirmation_preserves_success(
+        bool directChannel, bool cancelBeforePublish)
     {
         var services = new ServiceCollection();
-        services.AddRabbitMqSchemas(x => x.ThrowOnFailure = throwOnFailure);
+        services.AddRabbitMqSchemas();
+        using var provider = services.BuildServiceProvider();
+        using var cancellation = new CancellationTokenSource();
+        var (channel, proxy) = RecordingProxy<IModel>.Create();
+        var (properties, _) = RecordingProxy<IBasicProperties>.Create();
+        proxy.Handler = (method, _) =>
+        {
+            if (method.Name == nameof(IModel.CreateBasicProperties)) return properties;
+            if (method.Name == (cancelBeforePublish ? nameof(IModel.ConfirmSelect) : nameof(IModel.WaitForConfirmsOrDie)))
+                cancellation.Cancel();
+            return null;
+        };
+        var sender = provider.GetRequiredService<IRabbitSchemaSender>();
+        var send = directChannel
+            ? sender.SendAsync(channel, new Types(), new RabbitSchemaSource("events"), cancellation.Token)
+            : sender.SendAsync(_ => Task.FromResult(channel), new Types(), new RabbitSchemaSource("events"), cancellation.Token);
+
+        if (cancelBeforePublish)
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => send);
+            Assert.DoesNotContain(proxy.Calls, x => x.Method == nameof(IModel.BasicPublish));
+        }
+        else
+        {
+            await send;
+            Assert.Single(proxy.Calls, x => x.Method == nameof(IModel.BasicPublish));
+            Assert.Single(proxy.Calls, x => x.Method == nameof(IModel.WaitForConfirmsOrDie));
+        }
+        Assert.True(cancellation.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task Standalone_channel_creation_errors_are_propagated()
+    {
+        var services = new ServiceCollection();
+        services.AddRabbitMqSchemas();
+        using var provider = services.BuildServiceProvider();
+        await Assert.ThrowsAsync<IOException>(() => provider.GetRequiredService<IRabbitSchemaSender>().SendAsync(
+            _ => throw new IOException("cannot connect"), new Types(), new RabbitSchemaSource("events")));
+    }
+
+    [Theory]
+    [InlineData("options")]
+    [InlineData("exchange")]
+    [InlineData("provider")]
+    [InlineData("sender")]
+    public async Task Platform_logs_schema_failure_and_runs_later_initializer(string failure)
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddPlatformRabbitMqClient(new ConfigurationBuilder().Build());
+        services.Configure<RabbitMqSettings>(x => { x.Exchange = failure == "exchange" ? null : "events"; x.RequireBrokerOnStartup = true; });
+        if (failure == "options") services.Configure<RabbitSchemaOptions>(x => x.QueueName = "");
+        services.AddSingleton<IRabbitSchemaTypeProvider>(failure == "provider"
+            ? new FailingTypes() : new Types(output: new Dictionary<string, Type> { ["Event"] = typeof(Event) }));
+        services.AddSingleton<IRabbitSchemaSender, FailingSender>();
+        var logger = new SchemaLogger();
+        services.AddSingleton<ILogger<ExportSchemasInitializer>>(logger);
+        var later = new LaterInitializer();
+        services.AddSingleton<IRabbitInitializer>(later);
+        using var provider = services.BuildServiceProvider();
+
+        await provider.GetRequiredService<IHostedService>().StartAsync(default);
+
+        Assert.True(later.Called);
+        Assert.Contains(logger.Errors, x => x is not null);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Platform_adapter_handles_both_entry_points_and_preserves_shutdown_cancellation(bool directChannel)
+    {
+        var logger = new SchemaLogger();
+        var sender = new FailingSender();
+        var initializer = new ExportSchemasInitializer(new Types(), sender, Options.Create(new RabbitSchemaOptions()),
+            Options.Create(new RabbitMqSettings { Exchange = "events" }), logger: logger);
+        var (channel, _) = RecordingProxy<IModel>.Create();
+        Task Send(CancellationToken token) => directChannel ? initializer.InitializeAsync(channel, token)
+            : initializer.ExecuteAsync(_ => Task.FromResult(channel), token);
+        await Send(default);
+        Assert.Single(logger.Errors);
+        using var cancellation = new CancellationTokenSource();
+        sender.Error = new OperationCanceledException();
+        sender.OnSend = cancellation.Cancel;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Send(cancellation.Token));
+        Assert.Single(logger.Errors);
+    }
+
+    [Fact]
+    public async Task Schema_confirmation_timeout_can_be_overridden()
+    {
+        var services = new ServiceCollection();
+        services.AddRabbitMqSchemas();
+        services.AddSingleton<IRabbitSchemaSender, CustomTimeoutSender>();
+        using var provider = services.BuildServiceProvider();
+        var (channel, proxy) = RecordingProxy<IModel>.Create();
+        var (properties, _) = RecordingProxy<IBasicProperties>.Create();
+        proxy.Handler = (method, _) => method.Name == nameof(IModel.CreateBasicProperties) ? properties : null;
+        await provider.GetRequiredService<IRabbitSchemaSender>().SendAsync(channel, new Types(), new RabbitSchemaSource("events"));
+        Assert.Equal(TimeSpan.FromSeconds(9), Assert.Single(proxy.Calls,
+            x => x.Method == nameof(IModel.WaitForConfirmsOrDie)).Arguments[0]);
+    }
+
+    [Fact]
+    public async Task Standalone_publication_errors_are_propagated()
+    {
+        var services = new ServiceCollection();
+        services.AddRabbitMqSchemas();
         using var provider = services.BuildServiceProvider();
         var (channel, proxy) = RecordingProxy<IModel>.Create();
         var (properties, _) = RecordingProxy<IBasicProperties>.Create();
@@ -155,8 +268,7 @@ public class SchemaTests
             _ => null
         };
         var send = provider.GetRequiredService<IRabbitSchemaSender>().SendAsync(channel, new Types(), new RabbitSchemaSource("events"));
-        if (throwOnFailure) await Assert.ThrowsAsync<IOException>(() => send);
-        else await send;
+        await Assert.ThrowsAsync<IOException>(() => send);
         Assert.DoesNotContain(proxy.Calls, x => x.Method == nameof(IModel.WaitForConfirmsOrDie));
     }
 
@@ -215,8 +327,7 @@ public class SchemaTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["RabbitMQ:Exchange"] = "events",
-            ["RabbitMQ:Producer:SystemBindings:ToBilling"] = null,
-            ["RabbitMQ:Schemas:ThrowOnFailure"] = "true"
+            ["RabbitMQ:Producer:SystemBindings:ToBilling"] = null
         }).Build();
         var services = new ServiceCollection();
         services.AddSingleton<IRabbitMqClient>(client);
@@ -271,6 +382,54 @@ public class SchemaTests
     private sealed class ClassicQueues : IQueueDeclarationPolicy
     {
         public void Declare(IModel channel, string queue) => channel.QueueDeclare(queue, true, false, false, null);
+    }
+
+    private sealed class CustomTimeoutSender(IOptions<RabbitSchemaOptions> options, IQueueDeclarationPolicy policy,
+        RabbitSchemaMessageBuilder builder) : RabbitSchemaSender(options, policy, builder)
+    {
+        protected override TimeSpan ConfirmationTimeout => TimeSpan.FromSeconds(9);
+    }
+
+    private sealed class FailingTypes : IRabbitSchemaTypeProvider
+    {
+        public IReadOnlyDictionary<string, Type> InputEvents => throw new InvalidOperationException("schema provider failed");
+        public IReadOnlyDictionary<string, Type> OutputEvents => throw new InvalidOperationException("schema provider failed");
+    }
+
+    private sealed class FailingSender : IRabbitSchemaSender
+    {
+        public Exception Error { get; set; } = new IOException("schema send failed");
+        public Action? OnSend { get; set; }
+        public Task SendAsync(IModel channel, IRabbitSchemaTypeProvider types, RabbitSchemaSource source, CancellationToken cancellationToken = default) => this.Fail();
+        public Task SendAsync(Func<CancellationToken, Task<IModel>> createChannel, IRabbitSchemaTypeProvider types, RabbitSchemaSource source, CancellationToken cancellationToken = default) => this.Fail();
+        private Task Fail()
+        {
+            this.OnSend?.Invoke();
+            throw this.Error;
+        }
+    }
+
+    private sealed class LaterInitializer : IRabbitInitializer
+    {
+        public int Order => 2000;
+        public bool Called { get; private set; }
+        public Task InitializeAsync(IModel channel, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task ExecuteAsync(Func<CancellationToken, Task<IModel>> createChannel, CancellationToken cancellationToken)
+        {
+            this.Called = true;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class SchemaLogger : ILogger<ExportSchemasInitializer>
+    {
+        public List<Exception?> Errors { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Error) this.Errors.Add(exception);
+        }
     }
 
     private sealed class NoOpSender : IRabbitSchemaSender

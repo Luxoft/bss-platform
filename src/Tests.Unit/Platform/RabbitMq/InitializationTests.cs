@@ -93,11 +93,11 @@ public class InitializationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Host_applies_startup_policy_when_broker_is_unavailable(bool throwOnFailure)
+    public async Task Host_applies_startup_policy_when_broker_is_unavailable(bool requireBroker)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["RabbitMQ:Startup:ThrowOnFailure"] = throwOnFailure.ToString(),
+            ["RabbitMQ:RequireBrokerOnStartup"] = requireBroker.ToString(),
             ["RabbitMQ:ConnectionAttemptCount"] = "0"
         }).Build();
         var services = new ServiceCollection();
@@ -109,7 +109,7 @@ public class InitializationTests
         using var provider = services.BuildServiceProvider();
         var host = provider.GetRequiredService<IHostedService>();
 
-        if (throwOnFailure)
+        if (requireBroker)
         {
             await Assert.ThrowsAnyAsync<InvalidOperationException>(() => host.StartAsync(default));
         }
@@ -139,15 +139,24 @@ public class InitializationTests
         Assert.Contains(connectionProxy.Calls, x => x.Method == nameof(IDisposable.Dispose));
     }
 
-    [Fact]
-    public async Task Required_topology_failure_stops_later_initializers()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Required_topology_failure_stops_host_and_later_initializers(bool requireBroker)
     {
         var (model, _) = RecordingProxy<IModel>.Create();
         var (connection, proxy) = RecordingProxy<IConnection>.Create();
         proxy.Handler = (method, _) => method.Name == nameof(IConnection.CreateModel) ? model : null;
         var calls = new List<int>();
-        var service = new RabbitMqInitializationService(new FakeClient(connection), [new Initializer(0, calls, true), new Initializer(1, calls)], Options.Create(new RabbitMqSettings()));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartAsync(default));
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddPlatformRabbitMqClient(new ConfigurationBuilder().Build());
+        services.Configure<RabbitMqSettings>(x => x.RequireBrokerOnStartup = requireBroker);
+        services.AddSingleton<IRabbitMqClient>(new FakeClient(connection));
+        services.AddSingleton<IRabbitInitializer>(new Initializer(0, calls, true));
+        services.AddSingleton<IRabbitInitializer>(new Initializer(1, calls));
+        using var provider = services.BuildServiceProvider();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => provider.GetRequiredService<IHostedService>().StartAsync(default));
         Assert.Equal(new[] { 0 }, calls);
     }
 

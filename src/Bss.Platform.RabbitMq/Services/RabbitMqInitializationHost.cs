@@ -8,7 +8,7 @@ namespace Bss.Platform.RabbitMq.Services;
 
 internal sealed class RabbitMqInitializationHost(
     RabbitMqInitializationService initialization,
-    IOptions<RabbitMqStartupSettings> startup,
+    IOptions<RabbitMqSettings> settings,
     IOptions<RabbitMqServerSettings> server,
     ILogger<RabbitMqInitializationHost> logger) : IHostedService
 {
@@ -16,12 +16,12 @@ internal sealed class RabbitMqInitializationHost(
     {
         _ = server.Value;
         initialization.ValidateConfiguration();
-        var throwOnFailure = startup.Value.ThrowOnFailure;
+        var requireBroker = settings.Value.RequireBrokerOnStartup;
         try
         {
             await initialization.StartAsync(cancellationToken);
         }
-        catch (RabbitMqStartupConnectionException exception) when (!throwOnFailure)
+        catch (RabbitMqStartupConnectionException exception) when (!requireBroker)
         {
             logger.LogError(exception, "RabbitMQ topology initialization could not connect to the broker");
         }

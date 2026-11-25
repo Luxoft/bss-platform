@@ -36,7 +36,8 @@ public class PublisherTests
         Assert.Contains(fixture.Properties.Single().Calls, x => x.Method == "set_ContentType" && Equals(x.Arguments[0], "application/json"));
         Assert.Contains(fixture.Properties.Single().Calls, x => x.Method == "set_Persistent" && Equals(x.Arguments[0], true));
         Assert.Contains(fixture.Channels.Single().Calls, x => x.Method == nameof(IModel.ConfirmSelect));
-        Assert.Contains(fixture.Channels.Single().Calls, x => x.Method == nameof(IModel.WaitForConfirmsOrDie));
+        Assert.Equal(TimeSpan.FromSeconds(5), Assert.Single(fixture.Channels.Single().Calls,
+            x => x.Method == nameof(IModel.WaitForConfirmsOrDie)).Arguments[0]);
         Assert.Contains(fixture.Channels.Single().Calls, x => x.Method == nameof(IDisposable.Dispose));
     }
 
@@ -74,6 +75,8 @@ public class PublisherTests
         await fixture.Publisher.PublishAsync(new RegisteredEvent(1));
         Assert.Equal(nameof(UnknownEvent), Assert.Single(fixture.Channels[0].Calls, x => x.Method == nameof(IModel.BasicPublish)).Arguments[1]);
         Assert.Equal("Orders.Created", Assert.Single(fixture.Channels[1].Calls, x => x.Method == nameof(IModel.BasicPublish)).Arguments[1]);
+        Assert.All(fixture.Channels, channel => Assert.Equal(TimeSpan.FromSeconds(9),
+            Assert.Single(channel.Calls, x => x.Method == nameof(IModel.WaitForConfirmsOrDie)).Arguments[0]));
     }
 
     [Fact]
@@ -141,7 +144,7 @@ public class PublisherTests
         var client = new DelayedClient();
         var common = Options.Create(new RabbitMqSettings { Exchange = "events" });
         using var publisher = new RabbitMqEventPublisher(new OutputEventCatalog().AddOutputEvent<RegisteredEvent>("Event"), client,
-            new RabbitMqInitializationService(client, [], common), common, Options.Create(new RabbitMqProducerSettings()));
+            new RabbitMqInitializationService(client, [], common), common);
         var publications = Enumerable.Range(0, 5).Select(x => publisher.PublishAsync(new RegisteredEvent(x))).ToArray();
         await client.Connecting.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(1, client.Connections);
@@ -225,11 +228,10 @@ public class PublisherTests
             };
             this.Client = new InitializationTests.FakeClient(connection);
             var options = Options.Create(new RabbitMqSettings { Exchange = "events" });
-            var producer = Options.Create(new RabbitMqProducerSettings());
             var initialization = new RabbitMqInitializationService(this.Client, [], options);
             this.Publisher = fallback
-                ? new NameFallbackPublisher(catalog ?? this.Catalog, this.Client, initialization, options, producer)
-                : new RabbitMqEventPublisher(catalog ?? this.Catalog, this.Client, initialization, options, producer);
+                ? new NameFallbackPublisher(catalog ?? this.Catalog, this.Client, initialization, options)
+                : new RabbitMqEventPublisher(catalog ?? this.Catalog, this.Client, initialization, options);
         }
 
         private IModel CreateChannel()
@@ -262,10 +264,11 @@ public class PublisherTests
 
     private sealed class NameFallbackPublisher(
         IOutputEventCatalog catalog, IRabbitMqClient client, RabbitMqInitializationService initialization,
-        IOptions<RabbitMqSettings> options, IOptions<RabbitMqProducerSettings> producer)
-        : RabbitMqEventPublisher(catalog, client, initialization, options, producer)
+        IOptions<RabbitMqSettings> options)
+        : RabbitMqEventPublisher(catalog, client, initialization, options)
     {
         protected override string ResolveUnregisteredRoutingKey(Type eventType) => eventType.Name;
+        protected override TimeSpan ConfirmationTimeout => TimeSpan.FromSeconds(9);
     }
 
     private sealed class NoOpPublisher : IRabbitMqEventPublisher

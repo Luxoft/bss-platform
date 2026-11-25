@@ -2,7 +2,6 @@ using System.Text.Json;
 
 using Bss.Platform.RabbitMq.Base;
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using RabbitMQ.Client;
@@ -12,43 +11,40 @@ namespace Bss.Platform.RabbitMq.Schemas;
 public class RabbitSchemaSender(
     IOptions<RabbitSchemaOptions> options,
     IQueueDeclarationPolicy queuePolicy,
-    RabbitSchemaMessageBuilder messageBuilder,
-    ILogger<RabbitSchemaSender>? logger = null) : IRabbitSchemaSender
+    RabbitSchemaMessageBuilder messageBuilder) : IRabbitSchemaSender
 {
     protected virtual string DestinationQueue => options.Value.QueueName;
+    protected virtual TimeSpan ConfirmationTimeout => TimeSpan.FromSeconds(5);
 
     public virtual Task SendAsync(IModel channel, IRabbitSchemaTypeProvider types, RabbitSchemaSource source, CancellationToken cancellationToken = default) =>
-        this.HandleAsync(() =>
+        this.SendIfEnabledAsync(() =>
         {
             this.Publish(channel, types, source, cancellationToken);
             return Task.CompletedTask;
         }, source, cancellationToken);
 
     public virtual Task SendAsync(Func<CancellationToken, Task<IModel>> createChannel, IRabbitSchemaTypeProvider types, RabbitSchemaSource source, CancellationToken cancellationToken = default) =>
-        this.HandleAsync(async () =>
+        this.SendIfEnabledAsync(async () =>
         {
             using var channel = await createChannel(cancellationToken);
             this.Publish(channel, types, source, cancellationToken);
         }, source, cancellationToken);
 
-    private async Task HandleAsync(Func<Task> send, RabbitSchemaSource source, CancellationToken token)
+    private async Task SendIfEnabledAsync(Func<Task> send, RabbitSchemaSource source, CancellationToken token)
     {
-        var settings = options.Value; // Validation errors must not be suppressed.
+        var settings = options.Value;
         if (!settings.Enabled) return;
         ArgumentException.ThrowIfNullOrWhiteSpace(source.Exchange);
         token.ThrowIfCancellationRequested();
-        try { await send(); }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception exception)
-        {
-            logger?.LogError(exception, "Failed to publish RabbitMQ event schemas to {Exchange}", source.Exchange);
-            if (settings.ThrowOnFailure) throw;
-        }
+        await send();
     }
 
     private void Publish(IModel channel, IRabbitSchemaTypeProvider types, RabbitSchemaSource source, CancellationToken token)
     {
         var settings = options.Value;
+        var timeout = this.ConfirmationTimeout;
+        if (timeout <= TimeSpan.Zero)
+            throw new InvalidOperationException("ConfirmationTimeout must be positive.");
         var body = JsonSerializer.SerializeToUtf8Bytes(messageBuilder.Build(types, source, settings.SystemName));
         token.ThrowIfCancellationRequested();
         channel.ExchangeDeclare(source.Exchange, ExchangeType.Topic, true);
@@ -58,8 +54,8 @@ public class RabbitSchemaSender(
         properties.Persistent = true;
         properties.ContentType = "application/json";
         channel.ConfirmSelect();
-        channel.BasicPublish(source.Exchange, settings.RoutingKey, true, properties, body);
-        channel.WaitForConfirmsOrDie(settings.ConfirmationTimeout);
         token.ThrowIfCancellationRequested();
+        channel.BasicPublish(source.Exchange, settings.RoutingKey, true, properties, body);
+        channel.WaitForConfirmsOrDie(timeout);
     }
 }
