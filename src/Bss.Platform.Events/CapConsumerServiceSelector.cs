@@ -13,6 +13,10 @@ namespace Bss.Platform.Events;
 public class CapConsumerServiceSelector(IServiceProvider serviceProvider, Assembly assembly)
     : ConsumerServiceSelector(serviceProvider)
 {
+    protected virtual Type EventBaseType => typeof(IIntegrationEvent);
+
+    protected virtual Type GetExecutorType(Type eventType) => typeof(CapConsumerExecutor<>).MakeGenericType(eventType);
+
     protected override IEnumerable<ConsumerExecutorDescriptor> FindConsumersFromControllerTypes() => [];
 
     protected override IEnumerable<ConsumerExecutorDescriptor> FindConsumersFromInterfaceTypes(IServiceProvider provider)
@@ -21,8 +25,8 @@ public class CapConsumerServiceSelector(IServiceProvider serviceProvider, Assemb
 
         return assembly
                .ExportedTypes
-               .Where(x => typeof(IIntegrationEvent).IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false })
-               .Select(x => this.CreateExecutorDescriptor(typeof(CapConsumerExecutor<>).MakeGenericType(x), x, namePrefix));
+               .Where(x => this.EventBaseType.IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false, ContainsGenericParameters: false })
+               .Select(x => this.CreateExecutorDescriptor(this.GetExecutorType(x), x, namePrefix));
     }
 
     private ConsumerExecutorDescriptor CreateExecutorDescriptor(Type executor, Type @event, string? namePrefix)
@@ -50,4 +54,12 @@ public class CapConsumerServiceSelector(IServiceProvider serviceProvider, Assemb
                                 }
                };
     }
+}
+
+public class CapConsumerServiceSelector<TEvent>(IServiceProvider serviceProvider, Assembly assembly)
+    : CapConsumerServiceSelector(serviceProvider, assembly)
+{
+    protected override Type EventBaseType => typeof(TEvent);
+
+    protected override Type GetExecutorType(Type eventType) => typeof(CapConsumerExecutor<,>).MakeGenericType(eventType, typeof(TEvent));
 }

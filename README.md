@@ -24,6 +24,9 @@ This repository offers a wide collection of .NET packages for use in microservic
 
 ## RabbitMQ
 
+See [RabbitMQ initialization, output bindings and schema publication](docs/rabbitmq.md) for
+startup defaults, producer-only setup, standalone schema publication and migration settings.
+
 ### Consumer
 
 To use the RabbitMQ consumer, first install

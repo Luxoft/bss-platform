@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>Luxoft.Bss.Platform.RabbitMq.Base</PackageId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+</Project>

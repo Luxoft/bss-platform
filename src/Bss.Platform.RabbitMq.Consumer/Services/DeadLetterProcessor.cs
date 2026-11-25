@@ -4,6 +4,7 @@ using Bss.Platform.RabbitMq.Consumer.Enums;
 using Bss.Platform.RabbitMq.Consumer.Interfaces;
 using Bss.Platform.RabbitMq.Consumer.Settings;
 using Bss.Platform.RabbitMq.Interfaces;
+using Bss.Platform.RabbitMq.Settings;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -15,6 +16,7 @@ namespace Bss.Platform.RabbitMq.Consumer.Services;
 internal class DeadLetterProcessor(
     IRabbitMqClient client,
     ILogger<DeadLetterProcessor> logger,
+    IOptions<RabbitMqSettings> commonSettings,
     IOptions<RabbitMqConsumerSettings> consumerSettings)
     : IDeadLetterProcessor
 {
@@ -22,7 +24,7 @@ internal class DeadLetterProcessor(
     {
         try
         {
-            using var connection = await client.TryConnectAsync(consumerSettings.Value.ConnectionAttemptCount, token);
+            using var connection = await client.TryConnectAsync(commonSettings.Value.ConnectionAttemptCount, token);
             if (connection == null)
             {
                 throw new Exception("Failed to open connection");

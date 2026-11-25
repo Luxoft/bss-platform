@@ -1,6 +1,7 @@
 ﻿using Bss.Platform.RabbitMq.Consumer.Interfaces;
 using Bss.Platform.RabbitMq.Consumer.Settings;
 using Bss.Platform.RabbitMq.Interfaces;
+using Bss.Platform.RabbitMq.Services;
 using Bss.Platform.RabbitMq.Settings;
 
 using Microsoft.Extensions.Hosting;
@@ -13,9 +14,10 @@ namespace Bss.Platform.RabbitMq.Consumer.BackgroundServices;
 
 internal class RabbitMqBackgroundService(
     IRabbitMqClient client,
-    IEnumerable<IRabbitMqInitializer> initializers,
+    RabbitMqInitializationService initialization,
     IRabbitMqConsumer consumer,
     IOptions<RabbitMqServerSettings> serverSettings,
+    IOptions<RabbitMqSettings> commonSettings,
     IOptions<RabbitMqConsumerSettings> consumerSettings,
     ILogger<RabbitMqBackgroundService> logger)
     : BackgroundService
@@ -26,26 +28,36 @@ internal class RabbitMqBackgroundService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        this.connection = await client.TryConnectAsync(consumerSettings.Value.ConnectionAttemptCount, stoppingToken);
-        if (this.connection is null)
+        var settings = commonSettings.Value;
+        if (!await initialization.WaitForStartupAsync(stoppingToken))
         {
-            logger.LogInformation("Listening RabbitMQ events wasn't started");
-            return;
+            if (settings.RequireBrokerOnStartup)
+            {
+                return;
+            }
+
+            await initialization.WaitForInitializationAsync(stoppingToken);
         }
 
-        this.channel = this.connection!.CreateModel();
-        foreach (var initializer in initializers)
+        while ((this.connection = await client.TryConnectAsync(settings.ConnectionAttemptCount, stoppingToken)) is null)
         {
-            initializer.Initialize(this.channel);
+            if (settings.RequireBrokerOnStartup)
+            {
+                logger.LogInformation("Listening RabbitMQ events wasn't started");
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
         }
 
+        this.channel = this.connection.CreateModel();
         logger.LogInformation(
             "Listening RabbitMQ events has started on {Address}. Queue name is {Queue}. Consumer mode is {Mode}",
             serverSettings.Value.Address,
             consumerSettings.Value.Queue,
             consumerSettings.Value.Mode);
 
-        await consumer.ConsumeAsync(this.channel!, stoppingToken);
+        await consumer.ConsumeAsync(this.channel, stoppingToken);
     }
 
     public override void Dispose()

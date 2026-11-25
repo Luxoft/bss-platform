@@ -1,12 +1,15 @@
 using Bss.Platform.RabbitMq.Consumer.BackgroundServices;
+using Bss.Platform.RabbitMq.Base;
 using Bss.Platform.RabbitMq.Consumer.Enums;
 using Bss.Platform.RabbitMq.Consumer.Interfaces;
 using Bss.Platform.RabbitMq.Consumer.Internal;
 using Bss.Platform.RabbitMq.Consumer.Services;
 using Bss.Platform.RabbitMq.Consumer.Settings;
+using Bss.Platform.RabbitMq.Interfaces;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Bss.Platform.RabbitMq.Consumer;
 
@@ -27,8 +30,10 @@ public static class DependencyInjection
         IConfiguration configuration)
         where TMessageProcessor : class, IRabbitMqMessageProcessor
     {
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IRabbitInitializer, ConsumerTopologyInitializer>());
+        services.TryAddSingleton<IRabbitInputEventProvider, ConsumerInputEventProvider>();
         var consumerSettingsSection = configuration.GetSection("RabbitMQ:Consumer");
-        if (consumerSettingsSection.Get<RabbitMqConsumerSettings>()!.Mode == ConsumerMode.MultipleActiveConsumers)
+        if ((consumerSettingsSection.Get<RabbitMqConsumerSettings>()?.Mode ?? ConsumerMode.MultipleActiveConsumers) == ConsumerMode.MultipleActiveConsumers)
         {
             services.AddSingleton<IRabbitMqConsumer, ConcurrentConsumer>();
         }

@@ -20,6 +20,8 @@ public class RabbitMqConsumerSettings
 
     public string DeadLetterExchange { get; set; } = "deadletters";
 
+    public string? DeadLetterQueue { get; set; }
+
     public ConsumerMode Mode { get; set; } = ConsumerMode.MultipleActiveConsumers;
 
     /// <summary>
